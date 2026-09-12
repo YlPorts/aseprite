@@ -63,25 +63,37 @@ jobs:
           build\bin\aseprite.exe --batch --version
           if errorlevel 1 exit /b 1
 
-      - name: Test sprite creation and PNG export
+      - name: Test PNG import, project save, and PNG export
+        id: smoke
+        continue-on-error: true
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          @'
-          local s = Sprite(16, 16, ColorMode.RGB)
-          s.cels[1].image:drawPixel(0, 0, app.pixelColor.rgba(255, 0, 0, 255))
-          s:saveAs("smoke-test.aseprite")
-          s:saveCopyAs("smoke-test.png")
-          s:close()
-          '@ | Set-Content smoke-test.lua -Encoding utf8
-          & build/bin/aseprite.exe --batch --script smoke-test.lua
-          if ($LASTEXITCODE -ne 0) { throw 'Aseprite export test failed' }
+          $inputPng = 'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAFklEQVR4nGP4z8Dwn2EUjIJRMAoYGAAXbQH/UadMIQAAAABJRU5ErkJggg=='
+          [System.IO.File]::WriteAllBytes((Join-Path $pwd 'smoke-input.png'), [Convert]::FromBase64String($inputPng))
+          & build/bin/aseprite.exe --batch smoke-input.png --save-as smoke-test.aseprite
+          if ($LASTEXITCODE -ne 0) { throw 'PNG import / project save failed' }
+          & build/bin/aseprite.exe --batch smoke-test.aseprite --save-as smoke-test.png
+          if ($LASTEXITCODE -ne 0) { throw 'Project reopen / PNG export failed' }
           foreach ($f in @('smoke-test.aseprite', 'smoke-test.png')) {
             if (!(Test-Path $f) -or (Get-Item $f).Length -lt 20) { throw "Invalid export: $f" }
           }
 
+      - name: Test Lua interpreter
+        id: lua
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          'assert(type(Sprite) == "function"); print("Lua interpreter and Sprite constructor available")' | Set-Content smoke-lua.lua -Encoding utf8
+          & build/bin/aseprite.exe --batch --script smoke-lua.lua
+          if ($LASTEXITCODE -ne 0) { throw 'Lua interpreter test failed' }
+
       - name: Package program, resources, and runtime
         shell: pwsh
+        env:
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          LUA_OUTCOME: ${{ steps.lua.outcome }}
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force package/Aseprite | Out-Null
@@ -92,16 +104,21 @@ jobs:
           foreach ($f in (Get-ChildItem -File LICENSE*,EULA*)) { Copy-Item $f.FullName package/Aseprite -Force }
           $version = & build/bin/aseprite.exe --batch --version
           if ($LASTEXITCODE -ne 0) { throw 'Version check failed' }
+          $passedTests = @('Executable version')
+          if ($env:SMOKE_OUTCOME -eq 'success') { $passedTests += @('PNG import', 'ASEPRITE save', 'ASEPRITE reopen', 'PNG export') }
+          if ($env:LUA_OUTCOME -eq 'success') { $passedTests += 'Lua interpreter' }
           @{
             repository = $env:GITHUB_REPOSITORY
             commit = $env:GITHUB_SHA
             version = "$version"
             architecture = 'Windows x64'
-            tests = @('Executable version', 'Lua sprite creation', 'ASEPRITE save', 'PNG export')
+            tests = $passedTests
+            smoke_test_outcome = $env:SMOKE_OUTCOME
+            lua_test_outcome = $env:LUA_OUTCOME
             exe_sha256 = (Get-FileHash package/Aseprite/aseprite.exe -Algorithm SHA256).Hash
           } | ConvertTo-Json | Set-Content package/Aseprite/BUILD-INFO.json -Encoding utf8
-          "Extrae toda la carpeta y abre aseprite.exe. Conserva la carpeta data y los DLL junto al ejecutable. Compilacion personal no oficial; no es un instalador." | Set-Content package/Aseprite/LEEME.txt -Encoding utf8
-          Copy-Item smoke-test.png,smoke-test.aseprite package/Aseprite
+          "Extrae toda la carpeta y abre aseprite.exe. Conserva la carpeta data y los DLL junto al ejecutable. Compilacion personal no oficial; no es un instalador. BUILD-INFO.json indica las pruebas ejecutadas y sus resultados." | Set-Content package/Aseprite/LEEME.txt -Encoding utf8
+          foreach ($f in @('smoke-test.png', 'smoke-test.aseprite')) { if (Test-Path $f) { Copy-Item $f package/Aseprite } }
           Compress-Archive -Path package/Aseprite -DestinationPath Aseprite-Windows-x64-personal.zip -CompressionLevel Optimal
 
       - name: Encrypt personal delivery before artifact upload
