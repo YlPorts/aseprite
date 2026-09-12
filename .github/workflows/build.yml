@@ -37,7 +37,7 @@ jobs:
           Expand-Archive skia.zip -DestinationPath skia
           if (!(Test-Path skia/out/Release-x64/skia.lib)) { throw 'Missing Skia x64 library' }
 
-      - name: Locate Visual Studio 2022
+      - name: Locate Visual Studio and stage runtime before compiling
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -47,9 +47,21 @@ jobs:
           $vs = $vs.Trim()
           if (!(Test-Path "$vs/Common7/Tools/VsDevCmd.bat")) { throw 'Missing Visual Studio developer command file' }
           "VSROOT=$vs" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "Using Visual Studio: $vs"
+          New-Item -ItemType Directory -Force runtime | Out-Null
+          $root = Join-Path $vs 'VC/Redist/MSVC'
+          $crt = Get-ChildItem -LiteralPath $root -Recurse -Directory -Filter 'Microsoft.VC143.CRT' | Where-Object { $_.FullName -match '[\\/]x64[\\/]' -and $_.FullName -notmatch '[\\/](onecore|spectre|debug_nonredist)[\\/]' } | Sort-Object FullName -Descending | Select-Object -First 1
+          if (!$crt) { throw 'Redistributable Windows x64 CRT directory not found' }
+          $dlls = @(Get-ChildItem -LiteralPath $crt.FullName -File -Filter '*.dll')
+          if (!$dlls.Count) { throw 'Runtime directory contains no DLL files' }
+          foreach ($dll in $dlls) { Copy-Item -LiteralPath $dll.FullName -Destination runtime -Force }
+          foreach ($required in @('msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')) {
+            if (!(Test-Path (Join-Path runtime $required))) { throw "Missing runtime: $required" }
+          }
+          Write-Host "Staged $($dlls.Count) redistributable runtime libraries from $($crt.FullName)"
+          Get-ChildItem runtime -File | Select-Object Name,Length | Format-Table
 
       - name: Compile Windows GUI with MSVC x64
+        id: compile
         shell: cmd
         run: |
           @echo off
@@ -89,7 +101,8 @@ jobs:
           & build/bin/aseprite.exe --batch --script smoke-lua.lua
           if ($LASTEXITCODE -ne 0) { throw 'Lua interpreter test failed' }
 
-      - name: Package program, resources, and runtime
+      - name: Package program, resources, runtime, and test evidence
+        id: package
         shell: pwsh
         env:
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
@@ -97,11 +110,16 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force package/Aseprite | Out-Null
-          Copy-Item build/bin/* package/Aseprite -Recurse -Force
-          Get-ChildItem package/Aseprite -Recurse -File -Include *.pdb,*.lib,*.exp | Remove-Item -Force
-          $crt = Get-ChildItem "$env:VSROOT/VC/Redist/MSVC" -Recurse -Directory -Filter Microsoft.VC143.CRT | Where-Object { $_.FullName -match '[\\/]x64[\\/]' } | Sort-Object FullName -Descending | Select-Object -First 1
-          if ($null -ne $crt) { Copy-Item "$($crt.FullName)/*.dll" package/Aseprite -Force }
-          foreach ($f in (Get-ChildItem -File LICENSE*,EULA*)) { Copy-Item $f.FullName package/Aseprite -Force }
+          foreach ($item in (Get-ChildItem -LiteralPath build/bin)) {
+            Copy-Item -LiteralPath $item.FullName -Destination package/Aseprite -Recurse -Force
+          }
+          Get-ChildItem -LiteralPath package/Aseprite -Recurse -File | Where-Object { $_.Extension -in @('.pdb', '.lib', '.exp') } | Remove-Item -Force
+          foreach ($dll in (Get-ChildItem -LiteralPath runtime -File)) {
+            Copy-Item -LiteralPath $dll.FullName -Destination package/Aseprite -Force
+          }
+          foreach ($f in (Get-ChildItem -LiteralPath . -File | Where-Object { $_.Name -match '^(LICENSE|EULA)' })) {
+            Copy-Item -LiteralPath $f.FullName -Destination package/Aseprite -Force
+          }
           $version = & build/bin/aseprite.exe --batch --version
           if ($LASTEXITCODE -ne 0) { throw 'Version check failed' }
           $passedTests = @('Executable version')
@@ -118,13 +136,30 @@ jobs:
             exe_sha256 = (Get-FileHash package/Aseprite/aseprite.exe -Algorithm SHA256).Hash
           } | ConvertTo-Json | Set-Content package/Aseprite/BUILD-INFO.json -Encoding utf8
           "Extrae toda la carpeta y abre aseprite.exe. Conserva la carpeta data y los DLL junto al ejecutable. Compilacion personal no oficial; no es un instalador. BUILD-INFO.json indica las pruebas ejecutadas y sus resultados." | Set-Content package/Aseprite/LEEME.txt -Encoding utf8
-          foreach ($f in @('smoke-test.png', 'smoke-test.aseprite')) { if (Test-Path $f) { Copy-Item $f package/Aseprite } }
+          foreach ($f in @('smoke-test.png', 'smoke-test.aseprite')) {
+            if (Test-Path -LiteralPath $f) { Copy-Item -LiteralPath $f -Destination package/Aseprite }
+          }
+          & package/Aseprite/aseprite.exe --batch --version
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged executable version check failed' }
           Compress-Archive -Path package/Aseprite -DestinationPath Aseprite-Windows-x64-personal.zip -CompressionLevel Optimal
 
       - name: Encrypt personal delivery before artifact upload
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          # Keep a recovery package even if optional packaging failed after compilation.
+          if (!(Test-Path Aseprite-Windows-x64-personal.zip)) {
+            Write-Warning 'Normal packaging did not finish; preserving compiled bin as encrypted recovery.'
+            if (!(Test-Path package/Aseprite/aseprite.exe)) {
+              New-Item -ItemType Directory -Force package/Aseprite | Out-Null
+              foreach ($item in (Get-ChildItem -LiteralPath build/bin)) {
+                Copy-Item -LiteralPath $item.FullName -Destination package/Aseprite -Recurse -Force
+              }
+            }
+            Get-ChildItem -LiteralPath package/Aseprite -Recurse -File | Where-Object { $_.Extension -in @('.pdb', '.lib', '.exp') } | Remove-Item -Force
+            Compress-Archive -Path package/Aseprite -DestinationPath Aseprite-Windows-x64-personal.zip -CompressionLevel Optimal -Force
+          }
           # Only the public key is committed; the private delivery key is kept outside this repository.
           $rsa = [System.Security.Cryptography.RSA]::Create()
           $rsa.FromXmlString('<RSAKeyValue><Modulus>pnku/ewOPPBJcR498ZIyHgc3KrSp0WA7cKh+vodOkrFsjGq5eKrvbmK5CURVK0CAtqhtYYLSUXNb7dX1ascaVkL+3XlPobwiAwnB/rqi7v/n9qwkM0zUzwLvD1DoMJAj4ZYuYDo9Prz8EY2bIqwi4744FUBKd/6O/NeV+ciZgj7d7pDhOXZ5XE/ZocRNcbV6tG4DrnrhqWnakwPHHAvG30QqBfi7WZsSwqFPoa4JKOG4ipaZS0HpGOSu08r097eDHCZg15WiK0fOk50QG6dcCOy49tlSmIqlaVUIjRSml44UStpYEEHW8LspiJ/z0bnmeUdUJ2s3PRkxfqNcBPNstJa82+J4MwONJgs8wwBPlmcFR46S9TtPjqopHS4THCbRbh4QC62GmgtqjWhvDqMW8asFiKGa59Szf6/xuje+tkVC+J5DMcl0g4Yt7WfNn8JeO/xZ2EAHk/kfv2E89W+ZnYxshEAp6Yojus3oSdRxXRErpKDg1NWr6jsC/Ni7dkb5</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>')
@@ -149,6 +184,7 @@ jobs:
           $rsa.Dispose()
 
       - name: Save encrypted personal build
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: Aseprite-Windows-x64-personal-encrypted
