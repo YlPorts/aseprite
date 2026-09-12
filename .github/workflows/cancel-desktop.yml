@@ -1,0 +1,27 @@
+name: Stop superseded desktop build
+on:
+  push:
+    branches: ['android/native-core']
+    paths: ['.github/workflows/cancel-desktop.yml']
+permissions:
+  contents: read
+  actions: write
+jobs:
+  cancel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Cancel only the superseded desktop run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          run=34719436719
+          status=$(gh api "repos/$REPO/actions/runs/$run" --jq .status)
+          if [ "$status" != completed ]; then
+            gh api --method POST "repos/$REPO/actions/runs/$run/cancel"
+            echo 'Desktop cancellation requested.'
+          else
+            echo 'Desktop run already completed; no further action.'
+          fi
