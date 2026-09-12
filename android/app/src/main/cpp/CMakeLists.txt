@@ -27,10 +27,22 @@ if(ANDROID)
   # Android's pthread implementation is in libc; there is no libpthread.so.
   set_property(TARGET laf-base PROPERTY LINK_LIBRARIES dl)
   set_property(TARGET laf-base PROPERTY INTERFACE_LINK_LIBRARIES dl)
+  # C11 aligned_alloc is only available from Android API 28. Preserve API 26
+  # support with posix_memalign, keeping the upstream source/license intact.
+  file(READ "${ROOT}/laf/base/memory.cpp" ANDROID_MEMORY)
+  string(FIND "${ANDROID_MEMORY}" "return aligned_alloc(alignment, bytes);" ALLOC_CALL)
+  if(ALLOC_CALL EQUAL -1)
+    message(FATAL_ERROR "Upstream aligned allocator changed; review Android adapter")
+  endif()
+  string(REPLACE "return aligned_alloc(alignment, bytes);"
+    "void* ptr = nullptr;\n  if (alignment < sizeof(void*)) alignment = sizeof(void*);\n  const int err = posix_memalign(&ptr, alignment, bytes);\n  return (err == 0 ? ptr : nullptr);"
+    ANDROID_MEMORY "${ANDROID_MEMORY}")
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/memory_android.cpp" "${ANDROID_MEMORY}")
   get_target_property(BASE_SRC laf-base SOURCES)
-  list(FILTER BASE_SRC EXCLUDE REGEX "uuid_unix\\.cpp$")
+  list(FILTER BASE_SRC EXCLUDE REGEX "(uuid_unix|memory)\\.cpp$")
   set_property(TARGET laf-base PROPERTY SOURCES "${BASE_SRC}")
-  target_sources(laf-base PRIVATE "${CMAKE_CURRENT_LIST_DIR}/uuid_android.cpp")
+  target_sources(laf-base PRIVATE "${CMAKE_CURRENT_LIST_DIR}/uuid_android.cpp"
+    "${CMAKE_CURRENT_BINARY_DIR}/memory_android.cpp")
 endif()
 add_subdirectory("${ROOT}/laf/gfx" laf-gfx)
 if(ANDROID)
