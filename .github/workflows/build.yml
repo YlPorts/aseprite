@@ -1,113 +1,132 @@
-name: build
-on: [push, pull_request]
+name: Aseprite Windows x64 personal
+
+on:
+  push:
+    branches: ['build/windows-x64-personal']
+    paths: ['.github/workflows/build.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aseprite-windows-personal
+  cancel-in-progress: false
+
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
-        build_type: [RelWithDebInfo, Debug]
-        ui: [gui, cli]
-        scripting: [lua, noscripts]
-        exclude:
-          - build_type: Debug
-            ui: gui
-          - build_type: RelWithDebInfo
-            ui: cli
-          - build_type: RelWithDebInfo
-            scripting: noscripts
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 40
     steps:
-    - uses: actions/checkout@v7
-      with:
-        submodules: 'recursive'
-    - name: Install Dependencies
-      if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        sudo apt-get update -qq
-        sudo apt-get install -y \
-          libpixman-1-dev libfreetype6-dev libharfbuzz-dev zlib1g-dev \
-          libx11-dev libxcursor-dev libxi-dev libxrandr-dev libgl1-mesa-dev \
-          libfontconfig1-dev
-    - name: Install Skia
-      if: ${{ matrix.ui == 'gui' }}
-      shell: bash
-      run: |
-        if [[ "${{ runner.os }}" == "Windows" ]] ; then
-          this_dir=$(cygpath "${{ github.workspace }}")
-        else
-          this_dir="${{ github.workspace }}"
-        fi
-        skia_url=$(source $this_dir/laf/misc/skia-url.sh | xargs)
-        skia_file=$(basename $skia_url)
-        curl --ssl-revoke-best-effort -L -o "$skia_file" "$skia_url"
-        unzip "$skia_file" -d skia
-    - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2.23
-      if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
-      with:
-        key: ${{ matrix.os }}-${{ matrix.ui }}-${{ matrix.scripting }}-${{ matrix.build_type }}
-    - uses: aseprite/get-ninja@main
-    - uses: TheMrMilchmann/setup-msvc-dev@v4
-      if: runner.os == 'Windows'
-      with:
-        arch: x64
-    - name: Generating Makefiles
-      shell: bash
-      run: |
-        if [[ "${{ runner.os }}" == "Windows" ]] ; then
-          export enable_ccache=off
-        else
-          export enable_ccache=on
-        fi
+      - name: Obtain source and recursive dependencies
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          submodules: recursive
+          persist-credentials: false
 
-        if [[ "${{ matrix.ui }}" == "gui" ]] ; then
-          export laf_backend=skia
-        else
-          export laf_backend=none
-        fi
+      - name: Obtain matching official Skia
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = (Get-Content laf/misc/skia-tag.txt -Raw).Trim()
+          if ($tag -notmatch '^[a-zA-Z0-9._-]+$') { throw 'Invalid Skia release tag' }
+          $url = "https://github.com/aseprite/skia/releases/download/$tag/Skia-Windows-Release-x64.zip"
+          curl.exe --fail --location --retry 3 --output skia.zip $url
+          if ($LASTEXITCODE -ne 0) { throw 'Skia download failed' }
+          Expand-Archive skia.zip -DestinationPath skia
+          if (!(Test-Path skia/out/Release-x64/skia.lib)) { throw 'Missing Skia x64 library' }
 
-        if [[ "${{ matrix.scripting }}" == "lua" ]] ; then
-          export enable_scripting=on
-        else
-          export enable_scripting=off
-        fi
+      - name: Compile Windows GUI with MSVC x64
+        shell: cmd
+        run: |
+          @echo off
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -version "[17.0,18.0)" -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSROOT=%%i"
+          if not defined VSROOT exit /b 1
+          call "%VSROOT%\Common7\Tools\VsDevCmd.bat" -arch=x64 -host_arch=x64
+          if errorlevel 1 exit /b 1
+          set "PATH=%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%PATH%"
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DENABLE_TESTS=OFF -DENABLE_CCACHE=OFF -DENABLE_SCRIPTING=ON -DLAF_BACKEND=skia "-DSKIA_DIR=%CD%\skia" "-DSKIA_LIBRARY_DIR=%CD%\skia\out\Release-x64" "-DSKIA_LIBRARY=%CD%\skia\out\Release-x64\skia.lib"
+          if errorlevel 1 exit /b 1
+          cmake --build build --target aseprite --parallel 4
+          if errorlevel 1 exit /b 1
+          build\bin\aseprite.exe --batch --version
+          if errorlevel 1 exit /b 1
 
-        if [[ "${{ runner.os }}" == "macOS" ]] ; then
-          export skia_arch=arm64
-        else
-          export skia_arch=x64
-        fi
+      - name: Test sprite creation and PNG export
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          @'
+          local s = Sprite(16, 16, ColorMode.RGB)
+          s.cels[1].image:drawPixel(0, 0, app.pixelColor.rgba(255, 0, 0, 255))
+          s:saveAs("smoke-test.aseprite")
+          s:saveCopyAs("smoke-test.png")
+          s:close()
+          '@ | Set-Content smoke-test.lua -Encoding utf8
+          & build/bin/aseprite.exe --batch --script smoke-test.lua
+          if ($LASTEXITCODE -ne 0) { throw 'Aseprite export test failed' }
+          foreach ($f in @('smoke-test.aseprite', 'smoke-test.png')) {
+            if (!(Test-Path $f) -or (Get-Item $f).Length -lt 20) { throw "Invalid export: $f" }
+          }
 
-        cmake -S . -B build -G Ninja \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_OSX_DEPLOYMENT_TARGET=10.14 \
-          -DENABLE_TESTS=ON \
-          -DENABLE_SCRIPTING=$enable_scripting \
-          -DENABLE_CCACHE=$enable_ccache \
-          -DLAF_BACKEND=$laf_backend \
-          -DSKIA_DIR=$(realpath skia) \
-          -DSKIA_LIBRARY_DIR=$(realpath skia/out/Release-$skia_arch)
-    - name: Compiling
-      shell: bash
-      run: |
-        cd build && ninja
-    - name: Running C++ Tests
-      shell: bash
-      run: |
-        if [[ "${{ runner.os }}" == "Linux" ]] ; then
-          export XVFB=xvfb-run
-        fi
-        cd build && $XVFB ctest --output-on-failure
-    - name: Running CLI Tests
-      if: ${{ matrix.scripting == 'lua' }}
-      shell: bash
-      run: |
-        if [[ "${{ runner.os }}" == "Linux" ]] ; then
-          export XVFB=xvfb-run
-        fi
-        export ASEPRITE=$PWD/build/bin/aseprite
-        cd tests
-        $XVFB bash run-tests.sh
+      - name: Package program, resources, and runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force package/Aseprite | Out-Null
+          Copy-Item build/bin/* package/Aseprite -Recurse -Force
+          Get-ChildItem package/Aseprite -Recurse -File -Include *.pdb,*.lib,*.exp | Remove-Item -Force
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $vs = & $vswhere -latest -products '*' -version '[17.0,18.0)' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          $crt = Get-ChildItem "$vs/VC/Redist/MSVC" -Recurse -Directory -Filter Microsoft.VC143.CRT | Where-Object { $_.FullName -match '[\\/]x64[\\/]' } | Sort-Object FullName -Descending | Select-Object -First 1
+          if ($null -ne $crt) { Copy-Item "$($crt.FullName)/*.dll" package/Aseprite -Force }
+          foreach ($f in (Get-ChildItem -File LICENSE*,EULA*)) { Copy-Item $f.FullName package/Aseprite -Force }
+          $version = & build/bin/aseprite.exe --batch --version
+          if ($LASTEXITCODE -ne 0) { throw 'Version check failed' }
+          @{
+            repository = $env:GITHUB_REPOSITORY
+            commit = $env:GITHUB_SHA
+            version = "$version"
+            architecture = 'Windows x64'
+            tests = @('Executable version', 'Lua sprite creation', 'ASEPRITE save', 'PNG export')
+            exe_sha256 = (Get-FileHash package/Aseprite/aseprite.exe -Algorithm SHA256).Hash
+          } | ConvertTo-Json | Set-Content package/Aseprite/BUILD-INFO.json -Encoding utf8
+          "Extrae toda la carpeta y abre aseprite.exe. Conserva la carpeta data y los DLL junto al ejecutable. Compilacion personal no oficial; no es un instalador." | Set-Content package/Aseprite/LEEME.txt -Encoding utf8
+          Copy-Item smoke-test.png,smoke-test.aseprite package/Aseprite
+          Compress-Archive -Path package/Aseprite -DestinationPath Aseprite-Windows-x64-personal.zip -CompressionLevel Optimal
+
+      - name: Encrypt personal delivery before artifact upload
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Only the public delivery key is committed. The private key remains with the requester.
+          $rsa = [System.Security.Cryptography.RSA]::Create()
+          $rsa.FromXmlString('<RSAKeyValue><Modulus>rXmmc8MkYIbxUihG9NKmUqy3AcHq4yI3pN8e/yBsjsKtsgfusMat+eSJn46kG1t7vaDpBCafiIFrYTsH5kInZE8kpy3ZegysYCzWwh/Cx8+qCLbcIgZfMh78q/SAwT1+aSKVULW0lewVlCWHOnv0d4FNjxM6QBcv8DCOWxmJwM/5axidSaM1CODjQxPPJb7Zt31sDSiLMIW5peGr+mzJ3mPUnDHjMZkS2xz5Bwm9D/m0h9Lcv1PdDzeJk+k5Fvf2YmVOZ0I7eoHJIQq6TEj1icpylOl3OP3ZRkRvf7VYMdF0B0Ch0PmX4lnmuG0Eqyv3ZN5WnAEm7DgM0HVxtEkURYrKRsB55bQYg0lUG7OcT7SqFmlIXA04+f1SXoZWoPbMRXPh3DoKubu343lb+79Heywh8YXO0bq+0SNPkLqwJvTsf+FCnODhjHB/QBADP6PmJiZXHvwYNGo2sl24NnQqtKx7Npxb6bxCH80OLVG5Ta8pDmXDcx8HgJfzikOmAL55</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>')
+          $key = [System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)
+          $nonce = [System.Security.Cryptography.RandomNumberGenerator]::GetBytes(12)
+          $plain = [System.IO.File]::ReadAllBytes((Join-Path $pwd 'Aseprite-Windows-x64-personal.zip'))
+          $cipher = [byte[]]::new($plain.Length)
+          $tag = [byte[]]::new(16)
+          $aes = [System.Security.Cryptography.AesGcm]::new($key, 16)
+          $aes.Encrypt($nonce, $plain, $cipher, $tag)
+          $wrappedKey = $rsa.Encrypt($key, [System.Security.Cryptography.RSAEncryptionPadding]::OaepSHA256)
+          New-Item -ItemType Directory -Force personal-delivery | Out-Null
+          [System.IO.File]::WriteAllBytes((Join-Path $pwd 'personal-delivery/program.aesgcm'), $cipher)
+          @{
+            format = 'aseprite-personal-rsa3072-aes256gcm-v1'
+            encrypted_key = [Convert]::ToBase64String($wrappedKey)
+            nonce = [Convert]::ToBase64String($nonce)
+            tag = [Convert]::ToBase64String($tag)
+            zip_sha256 = (Get-FileHash Aseprite-Windows-x64-personal.zip -Algorithm SHA256).Hash
+          } | ConvertTo-Json | Set-Content personal-delivery/envelope.json -Encoding utf8
+          $aes.Dispose()
+          $rsa.Dispose()
+
+      - name: Save encrypted personal build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Aseprite-Windows-x64-personal-encrypted
+          path: personal-delivery/
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
