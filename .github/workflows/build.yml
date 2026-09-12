@@ -37,12 +37,22 @@ jobs:
           Expand-Archive skia.zip -DestinationPath skia
           if (!(Test-Path skia/out/Release-x64/skia.lib)) { throw 'Missing Skia x64 library' }
 
+      - name: Locate Visual Studio 2022
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $vs = & $vswhere -latest -products '*' -version '[17.0,18.0)' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if ($LASTEXITCODE -ne 0 -or !$vs) { throw 'Visual Studio 2022 not found' }
+          $vs = $vs.Trim()
+          if (!(Test-Path "$vs/Common7/Tools/VsDevCmd.bat")) { throw 'Missing Visual Studio developer command file' }
+          "VSROOT=$vs" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Using Visual Studio: $vs"
+
       - name: Compile Windows GUI with MSVC x64
         shell: cmd
         run: |
           @echo off
-          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -version "[17.0,18.0)" -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSROOT=%%i"
-          if not defined VSROOT exit /b 1
           call "%VSROOT%\Common7\Tools\VsDevCmd.bat" -arch=x64 -host_arch=x64
           if errorlevel 1 exit /b 1
           set "PATH=%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%PATH%"
@@ -77,9 +87,7 @@ jobs:
           New-Item -ItemType Directory -Force package/Aseprite | Out-Null
           Copy-Item build/bin/* package/Aseprite -Recurse -Force
           Get-ChildItem package/Aseprite -Recurse -File -Include *.pdb,*.lib,*.exp | Remove-Item -Force
-          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
-          $vs = & $vswhere -latest -products '*' -version '[17.0,18.0)' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-          $crt = Get-ChildItem "$vs/VC/Redist/MSVC" -Recurse -Directory -Filter Microsoft.VC143.CRT | Where-Object { $_.FullName -match '[\\/]x64[\\/]' } | Sort-Object FullName -Descending | Select-Object -First 1
+          $crt = Get-ChildItem "$env:VSROOT/VC/Redist/MSVC" -Recurse -Directory -Filter Microsoft.VC143.CRT | Where-Object { $_.FullName -match '[\\/]x64[\\/]' } | Sort-Object FullName -Descending | Select-Object -First 1
           if ($null -ne $crt) { Copy-Item "$($crt.FullName)/*.dll" package/Aseprite -Force }
           foreach ($f in (Get-ChildItem -File LICENSE*,EULA*)) { Copy-Item $f.FullName package/Aseprite -Force }
           $version = & build/bin/aseprite.exe --batch --version
