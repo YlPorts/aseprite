@@ -1,0 +1,39 @@
+name: Windows runtime package check
+on:
+  push:
+    branches: ['build/windows-x64-personal']
+    paths: ['.github/workflows/runtime-package-check.yml']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+      - name: Inspect runtime and test literal file copying
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $vs = (& $vswhere -latest -products '*' -version '[17.0,18.0)' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath).Trim()
+          $root = Join-Path $vs 'VC/Redist/MSVC'
+          Write-Host "Visual Studio redist root: $root"
+          Get-ChildItem -LiteralPath $root -Recurse -File -Filter '*.dll' | Select-Object -First 30 -ExpandProperty FullName
+          $dirs = @(Get-ChildItem -LiteralPath $root -Recurse -Directory -Filter '*CRT*' | Where-Object { $_.FullName -match '[\\/]x64[\\/]' })
+          foreach ($dir in $dirs) {
+            Write-Host "Runtime directory: $($dir.FullName)"
+            Get-ChildItem -LiteralPath $dir.FullName -Force | Select-Object Name,Length,Attributes | Format-Table
+          }
+          New-Item -ItemType Directory -Force package/Aseprite/data | Out-Null
+          'package fixture, not the Aseprite program' | Set-Content package/Aseprite/fixture.txt
+          $dlls = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter '*.dll' | Where-Object { $_.FullName -match '[\\/]x64[\\/].*CRT[\\/]' })
+          Write-Host "Redistributable x64 CRT files found: $($dlls.Count)"
+          foreach ($dll in $dlls) { Copy-Item -LiteralPath $dll.FullName -Destination package/Aseprite -Force }
+          if (!$dlls.Count) {
+            Write-Host 'Fallback runtime candidates in System32:'
+            Get-ChildItem -LiteralPath "$env:windir/System32" -File | Where-Object { $_.Name -match '^(msvcp140|vcruntime140|concrt140).*\.dll$' } | Select-Object Name,Length | Format-Table
+          }
+          Get-ChildItem package/Aseprite -File | Select-Object Name,Length | Format-Table
+          Compress-Archive -Path package/Aseprite -DestinationPath package-test.zip -CompressionLevel Optimal
+          if (!(Test-Path package-test.zip)) { throw 'Package creation failed' }
+          Write-Host 'Literal-path package test passed.'
