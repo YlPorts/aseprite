@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: aseprite-windows-personal
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   windows:
@@ -23,6 +23,7 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
+          fetch-depth: 1
 
       - name: Obtain matching official Skia
         shell: pwsh
@@ -99,9 +100,9 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          # Only the public delivery key is committed. The private key remains with the requester.
+          # Only the public key is committed; the private delivery key is kept outside this repository.
           $rsa = [System.Security.Cryptography.RSA]::Create()
-          $rsa.FromXmlString('<RSAKeyValue><Modulus>rXmmc8MkYIbxUihG9NKmUqy3AcHq4yI3pN8e/yBsjsKtsgfusMat+eSJn46kG1t7vaDpBCafiIFrYTsH5kInZE8kpy3ZegysYCzWwh/Cx8+qCLbcIgZfMh78q/SAwT1+aSKVULW0lewVlCWHOnv0d4FNjxM6QBcv8DCOWxmJwM/5axidSaM1CODjQxPPJb7Zt31sDSiLMIW5peGr+mzJ3mPUnDHjMZkS2xz5Bwm9D/m0h9Lcv1PdDzeJk+k5Fvf2YmVOZ0I7eoHJIQq6TEj1icpylOl3OP3ZRkRvf7VYMdF0B0Ch0PmX4lnmuG0Eqyv3ZN5WnAEm7DgM0HVxtEkURYrKRsB55bQYg0lUG7OcT7SqFmlIXA04+f1SXoZWoPbMRXPh3DoKubu343lb+79Heywh8YXO0bq+0SNPkLqwJvTsf+FCnODhjHB/QBADP6PmJiZXHvwYNGo2sl24NnQqtKx7Npxb6bxCH80OLVG5Ta8pDmXDcx8HgJfzikOmAL55</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>')
+          $rsa.FromXmlString('<RSAKeyValue><Modulus>pnku/ewOPPBJcR498ZIyHgc3KrSp0WA7cKh+vodOkrFsjGq5eKrvbmK5CURVK0CAtqhtYYLSUXNb7dX1ascaVkL+3XlPobwiAwnB/rqi7v/n9qwkM0zUzwLvD1DoMJAj4ZYuYDo9Prz8EY2bIqwi4744FUBKd/6O/NeV+ciZgj7d7pDhOXZ5XE/ZocRNcbV6tG4DrnrhqWnakwPHHAvG30QqBfi7WZsSwqFPoa4JKOG4ipaZS0HpGOSu08r097eDHCZg15WiK0fOk50QG6dcCOy49tlSmIqlaVUIjRSml44UStpYEEHW8LspiJ/z0bnmeUdUJ2s3PRkxfqNcBPNstJa82+J4MwONJgs8wwBPlmcFR46S9TtPjqopHS4THCbRbh4QC62GmgtqjWhvDqMW8asFiKGa59Szf6/xuje+tkVC+J5DMcl0g4Yt7WfNn8JeO/xZ2EAHk/kfv2E89W+ZnYxshEAp6Yojus3oSdRxXRErpKDg1NWr6jsC/Ni7dkb5</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>')
           $key = [System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)
           $nonce = [System.Security.Cryptography.RandomNumberGenerator]::GetBytes(12)
           $plain = [System.IO.File]::ReadAllBytes((Join-Path $pwd 'Aseprite-Windows-x64-personal.zip'))
