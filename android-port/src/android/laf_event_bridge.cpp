@@ -75,7 +75,9 @@ void postToLaf(const std::vector<Gesture>& gestures, const os::WindowRef& window
         os::Event event;
         event.setType(os::Event::TouchMagnify);
         event.setWindow(window);
-        event.setPosition(gfx::Point(std::lround(g.x),std::lround(g.y)));
+        // Pinch center must use the same logical Skia coordinates as
+        // tap, stroke and pan events (not raw screen pixels).
+        event.setPosition(logicalPosition(g,window));
         event.setPointerType(os::PointerType::Touch);
         event.setMagnification(g.magnification);
         os::queue_event(event);
