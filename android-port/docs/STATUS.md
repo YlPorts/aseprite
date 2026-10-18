@@ -146,3 +146,23 @@ This is real source work, not a fully linked or device-tested original
 Aseprite editor. Full Skia ARM64/linker errors remain to resolve once a
 CI run completes and its logs are inspected.
 
+
+## Continuación: fallos concretos de compilación corregidos
+
+- Se reemplazó el workflow Skia malformado (líneas duplicadas, `grep` roto)
+  por una secuencia única con checkout recursivo del Aseprite original.
+- La generación GN ahora utiliza el ejecutable `gn` de `depot_tools`.
+- El software raster original `laf/os/skia/skia_surface.cpp` ya no intenta
+  utilizar clases internas de GPU cuando `SK_SUPPORT_GPU=0`; la prueba de
+  parches valida la condición sobre el código real del submódulo.
+- Se excluyó la comprobación libc++ específica de Linux para el NDK Android.
+- `laf/base/platform_unix.cpp` se protege con `LAF_LINUX` para no
+  compilar utilidades exclusivas de distribuciones Linux en Android.
+- Se eliminó una comprobación que exigía un inexistente
+  `laf/clip/CMakeLists.txt` incluso con portapapeles deshabilitado.
+- Se cancelan trazos y gestos cuando desaparece la superficie nativa,
+  aunque no se haya recibido `onPause` de Android.
+- Pruebas locales: **3/3** módulos C++ aislados pasaron nuevamente.
+- **Importante:** no hay compilación completa `libaseprite.so` verificada
+  ni APK jugable. No confundir fuente corregida con ejecución exitosa.
+
