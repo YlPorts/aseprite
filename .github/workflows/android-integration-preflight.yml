@@ -16,6 +16,8 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 1
+      - name: Check original editor Java/JNI startup contract
+        run: python3 android-port/tests/verify_android_bootstrap_contract.py
       - name: Validate patch syntax and required original sources
         run: |
           python3 -m py_compile android-port/scripts/patch-laf-headless-android.py \
