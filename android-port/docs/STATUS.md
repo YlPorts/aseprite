@@ -43,6 +43,27 @@ Original Aseprite source: `YlPorts/aseprite`, branch `android-native-port-wip`.
 - GitHub integration-preflight workflow checks patch compatibility only;
   not a completed original GUI build.
 
+## Corrections and checks — current continuation
+
+- Fix CMake dispatch selecting `skia_window_android.cpp` rather than X11 for Android.
+- Make the headless/raster/runtime overlays re-applicable and add an
+  isolated regression test against real source/submodule files:
+  `tests/patch_laf_integration_test.py`.
+- Release Android JNI window registry before `SkiaSystem` event teardown;
+  do not advertise unsupported multiple native windows.
+- Correct missing native `setTextInput()` interface and update the original
+  `System::mousePosition()` pointer coordinate support.
+- Avoid linking two copies of the standalone raster presenter.
+- Add an experimental GitHub Actions job to build authentic Aseprite
+  `aseprite-m124` Skia with Android NDK 27, ARM64 and CPU raster enabled.
+- **Locally verified in this session:** the original stage-1 touch CTest
+  passed (1/1) and the GitHub-sourced C++ raster test passed with
+  AddressSanitizer + UndefinedBehaviorSanitizer.
+- Checked 15 expected integration anchors in current official Aseprite/LAF
+  sources via repository content inspection (not a compiled Android port).
+- New GitHub Actions workflows and real editor JNI integration have no
+  confirmed passing end-to-end run; do not claim an APK works.
+
 ## Known blockers
 
 1. **Validate and fix** the new Activity/JNI `app_main()` integration in real NDK builds.
