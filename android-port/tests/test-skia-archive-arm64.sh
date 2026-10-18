@@ -19,11 +19,13 @@ done
 export ASEPRITE_AR="$AR"
 export ASEPRITE_READELF="$READELF"
 bash "$AUDIT" "$TMP" >/dev/null
+rm "$TMP/libskunicode.a"
 "$AR" rcs "$TMP/libskunicode.a" "$TMP/host.o"
 if bash "$AUDIT" "$TMP" >/dev/null 2>&1; then
   echo "FAIL: wrong CPU archive was accepted" >&2
   exit 1
 fi
+rm "$TMP/libskunicode.a"
 "$AR" rcs "$TMP/libskunicode.a" "$TMP/arm64.o"
 printf 'target_os = "linux"\ntarget_cpu = "arm64"\n' > "$TMP/args.gn"
 if bash "$AUDIT" "$TMP" >/dev/null 2>&1; then
