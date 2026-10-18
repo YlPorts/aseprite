@@ -104,18 +104,18 @@ def main():
     surface=laf/'os/skia/skia_surface.cpp'
     replace_once(surface,
         '  // The SkSurface_Raster::skBitmap() member function was added by us',
-        '#if SK_SUPPORT_GPU\\n'
+        '#if SK_SUPPORT_GPU\n'
         '  // The SkSurface_Raster::skBitmap() member function was added by us',
         args.dry_run)
     replace_once(surface,
-        '      return &raster->skBitmap();\\n'
-        '    }\\n'
-        '  }\\n\\n'
+        '      return &raster->skBitmap();\n'
+        '    }\n'
+        '  }\n\n'
         '  return nullptr;',
-        '      return &raster->skBitmap();\\n'
-        '    }\\n'
-        '  }\\n'
-        '#endif\\n\\n'
+        '      return &raster->skBitmap();\n'
+        '    }\n'
+        '  }\n'
+        '#endif\n\n'
         '  return nullptr;',
         args.dry_run)
     # Do not run the desktop-only libc++ probing logic for Android NDK.
