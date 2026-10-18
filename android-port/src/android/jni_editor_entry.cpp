@@ -11,6 +11,7 @@
 #include <thread>
 #include <vector>
 #include "android_raster_window.h"
+#include "android_ime_bridge.h"
 #include "touch_router.h"
 #include "laf_event_bridge.h"
 #include "os/android/window_registry.h"
@@ -26,6 +27,11 @@ std::once_flag startOnce;
 std::mutex touchMutex;
 aseandroid::TouchRouter touchRouter;
 std::atomic_bool originalEditorStarted{false};
+std::mutex imeMutex;
+JavaVM* imeJavaVM=nullptr;
+jclass imeActivityClass=nullptr; // Process-lifetime class reference.
+jmethodID imeRequestMethod=nullptr;
+
 
 void startOriginalAseprite(std::string filesRoot) {
   const std::string data=filesRoot+"/data";
@@ -52,6 +58,68 @@ void startOriginalAseprite(std::string filesRoot) {
   os::androidClearPressedKeys();
   os::androidUnregisterWindow(nullptr);
 }
+}
+
+// Called by the genuine SkiaSystem -> WindowAndroid::setTextInput path.
+// The Activity handles all UI changes on the main Android thread.
+namespace aseandroid {
+void requestOriginalEditorIme(bool enabled) {
+  std::lock_guard<std::mutex> guard(imeMutex);
+  if (!imeJavaVM || !imeActivityClass || !imeRequestMethod) return;
+  JNIEnv* env=nullptr;
+  bool attached=false;
+  const jint state=imeJavaVM->GetEnv(reinterpret_cast<void**>(&env),JNI_VERSION_1_6);
+  if (state==JNI_EDETACHED) {
+    if (imeJavaVM->AttachCurrentThread(&env,nullptr)!=JNI_OK) return;
+    attached=true;
+  } else if(state!=JNI_OK || !env) return;
+  env->CallStaticVoidMethod(imeActivityClass,imeRequestMethod,
+                            enabled?JNI_TRUE:JNI_FALSE);
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+  }
+  if(attached) imeJavaVM->DetachCurrentThread();
+}
+}
+
+// Class registration happens on the Java UI thread; FindClass() from an
+// arbitrary C++ engine thread would use the wrong Android classloader.
+extern "C" JNIEXPORT void JNICALL
+Java_com_ylports_aseprite_AsepriteActivity_nativeRegisterImeBridge(
+    JNIEnv* env,jclass activityClass) {
+  std::lock_guard<std::mutex> guard(imeMutex);
+  if(imeActivityClass) return;
+  if(env->GetJavaVM(&imeJavaVM)!=JNI_OK) return;
+  jclass global=static_cast<jclass>(env->NewGlobalRef(activityClass));
+  if(!global) return;
+  jmethodID method=env->GetStaticMethodID(global,"setImeEnabledFromNative","(Z)V");
+  if(!method) {
+    env->ExceptionClear();
+    env->DeleteGlobalRef(global);
+    return;
+  }
+  imeActivityClass=global;
+  imeRequestMethod=method;
+}
+
+// Unicode committed by Android's real InputMethodManager, forwarded to
+// Aseprite's existing LAF event queue instead of a stand-in text editor.
+extern "C" JNIEXPORT void JNICALL
+Java_com_ylports_aseprite_AsepriteActivity_nativeCommitText(
+    JNIEnv*,jclass,jint codepoint) {
+  if(codepoint<=0 || codepoint>0x10ffff ||
+     (codepoint>=0xd800 && codepoint<=0xdfff) ||
+     !originalEditorStarted.load(std::memory_order_acquire)) return;
+  auto window=os::androidAcquireWindow();
+  if(!window) return;
+  os::Event press;
+  press.setType(os::Event::KeyDown);
+  press.setWindow(window);
+  press.setScancode(os::kKeyNil);
+  press.setUnicodeChar(static_cast<base::codepoint_t>(codepoint));
+  press.setModifiers(os::kKeyNoneModifier);
+  os::queue_event(press);
 }
 
 extern "C" JNIEXPORT void JNICALL
