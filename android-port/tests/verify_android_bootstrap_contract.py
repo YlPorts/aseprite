@@ -11,6 +11,8 @@ jni=(root/"src/android/jni_editor_entry.cpp").read_text()
 screen=(root/"platform/laf/os/android/screen.cpp").read_text()
 system=(root/"platform/laf/os/android/system.h").read_text()
 window=(root/"platform/laf/os/android/window.cpp").read_text()
+bridge=(root/"src/android/laf_event_bridge.cpp").read_text()
+raster=(root/"src/android/raster_presenter.cpp").read_text()
 
 signature=re.search(
     r"private\s+static\s+native\s+boolean\s+nativeStartOriginalEditor\s*\(\s*String\s+filesRoot\s*\)",
@@ -24,6 +26,10 @@ assert java.count("nativeStartOriginalEditor(getFilesDir().getAbsolutePath())")=
 assert "if (nativeStartOriginalEditor(getFilesDir().getAbsolutePath()))" in java
 assert "return dispatched ? JNI_TRUE : JNI_FALSE;" in jni
 assert "app_main(1,argv)" in jni, "Must launch original Aseprite app_main"
+assert "AsepriteAndroid" in jni and "Original editor app_main exited with code" in jni
+assert "dynamic_cast<os::WindowAndroid*>" not in jni
+assert "rasterViewport(" in bridge and "rasterViewport(" in raster
+assert "surface->width()" in bridge and "surface->height()" in bridge
 assert "static ScreenRef primary=make_ref<ScreenAndroid>();" in screen
 assert "return androidPrimaryScreen();" in system
 assert "return androidPrimaryScreen();" in window
