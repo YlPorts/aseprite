@@ -12,6 +12,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Fail early on malformed original engine build scripts
+        run: |
+          bash -n android-port/scripts/try-build-original-editor-arm64.sh
+          python3 -m py_compile android-port/scripts/patch-laf-headless-android.py \
+            android-port/scripts/patch-laf-android-raster.py \
+            android-port/scripts/patch-laf-android-runtime.py \
+            android-port/scripts/patch-aseprite-android-engine.py
+          python3 android-port/tests/verify_android_bootstrap_contract.py
       - name: Compile and test native C++ input
         run: |
           sudo apt-get update
