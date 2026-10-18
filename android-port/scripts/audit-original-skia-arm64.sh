@@ -12,7 +12,7 @@ grep -Eq '^[[:space:]]*target_os[[:space:]]*=[[:space:]]*"android"' "$LIB/args.g
 grep -Eq '^[[:space:]]*target_cpu[[:space:]]*=[[:space:]]*"arm64"' "$LIB/args.gn"
 echo "GN source target: Android arm64"
 echo "Compiled static archives (including third-party dependencies):"
-find "$LIB" -maxdepth 2 -type f -name '*.a' -printf '%P\n' | sort
+find "$LIB" -maxdepth 8 -type f -name '*.a' -printf '%P\n' | sort
 for name in libskia.a libskshaper.a libskunicode.a; do
   archive="$LIB/$name"
   test -s "$archive" || { echo "MISSING: $archive" >&2; exit 2; }
