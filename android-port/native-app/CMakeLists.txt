@@ -25,6 +25,12 @@ add_library(aseprite SHARED
   ${CMAKE_SOURCE_DIR}/src/main/main.cpp
   ${CMAKE_SOURCE_DIR}/android-port/src/android/jni_editor_entry.cpp
   ${CMAKE_SOURCE_DIR}/android-port/src/android/laf_event_bridge.cpp)
+# Android's dynamic loader requires the genuine app_main() and every
+# referenced Aseprite/LAF/Skia symbol to resolve before the APK starts.
+# Shared-library links otherwise allow undefined symbols and produce a
+# seemingly valid .so that fails immediately in System.loadLibrary().
+target_link_options(aseprite PRIVATE "-Wl,--no-undefined")
+set_target_properties(aseprite PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 target_compile_definitions(aseprite PRIVATE HAVE_CONFIG_H)
 target_include_directories(aseprite PRIVATE
   ${CMAKE_SOURCE_DIR}/src
