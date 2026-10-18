@@ -64,7 +64,13 @@ cmake -S . -B "$ANDROID_BUILD" -G Ninja \
   -DSKIA_LIBRARY="$LIBS/libskia.a" \
   -DSKUNICODE_LIBRARY="$LIBS/libskunicode.a" \
   -DSKSHAPER_LIBRARY="$LIBS/libskshaper.a"
+echo "ASEPRITE_ANDROID_STAGE: Building original laf-os for ARM64"
+cmake --build "$ANDROID_BUILD" --target laf-os -j 2
+echo "ASEPRITE_ANDROID_STAGE: laf-os complete; building original app-lib"
+cmake --build "$ANDROID_BUILD" --target app-lib -j 2
+echo "ASEPRITE_ANDROID_STAGE: app-lib complete; linking genuine libaseprite.so"
 cmake --build "$ANDROID_BUILD" --target aseprite -j 2
+echo "ASEPRITE_ANDROID_STAGE: original Android linker completed"
 
 OUTPUT="$ANDROID_BUILD/lib/libaseprite.so"
 if [[ ! -s "$OUTPUT" ]]; then
