@@ -9,7 +9,7 @@ LIBS="${ASEPRITE_ANDROID_SKIA_LIBS:-$SKIA/out/Release-Android-arm64}"
 GEN_BUILD="$ROOT/build/aseprite-hostgen-android"
 ANDROID_BUILD="$ROOT/build/aseprite-gui-android-arm64"
 cd "$ROOT"
-if [[ ! -f laf/os/CMakeLists.txt || ! -f laf/base/CMakeLists.txt ]]; then
+if [[ ! -f laf/os/CMakeLists.txt || ! -f laf/base/CMakeLists.txt || ! -f laf/clip/CMakeLists.txt ]]; then
   echo "ERROR: original pinned LAF submodules missing; git submodule update --init --recursive" >&2
   exit 2
 fi
@@ -42,7 +42,7 @@ cmake -S . -B "$GEN_BUILD" -G Ninja \
   -DCMAKE_BUILD_TYPE=Release -DLAF_BACKEND=none \
   -DENABLE_ASEPRITE_EXE=OFF -DENABLE_TESTS=OFF \
   -DENABLE_NEWS=OFF -DENABLE_UPDATER=OFF \
-  -DENABLE_I18N_STRINGS=OFF -DENABLE_SCRIPTING=OFF \
+  -DENABLE_I18N_STRINGS=OFF -DENABLE_SCRIPTING=OFF -DENABLE_WEBSOCKET=OFF \
   -DLAF_WITH_TESTS=OFF -DLAF_WITH_EXAMPLES=OFF -DLAF_WITH_CLIP=OFF
 cmake --build "$GEN_BUILD" --target gen -j 2
 GEN="$GEN_BUILD/bin/gen"
@@ -57,7 +57,7 @@ cmake -S . -B "$ANDROID_BUILD" -G Ninja \
   -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
   -DENABLE_ASEPRITE_EXE=OFF -DASEPRITE_ANDROID_GUI=ON \
   -DENABLE_TESTS=OFF -DENABLE_NEWS=OFF -DENABLE_UPDATER=OFF \
-  -DENABLE_I18N_STRINGS=OFF -DENABLE_SCRIPTING=OFF \
+  -DENABLE_I18N_STRINGS=OFF -DENABLE_SCRIPTING=OFF -DENABLE_WEBSOCKET=OFF \
   -DLAF_WITH_EXAMPLES=OFF -DLAF_WITH_TESTS=OFF \
   -DLAF_WITH_CLIP=OFF -DLAF_BACKEND=skia \
   -DGEN_EXE="$GEN" -DSKIA_DIR="$SKIA" -DSKIA_LIBRARY_DIR="$LIBS" \
