@@ -242,3 +242,24 @@ successful. This is still **not** a functional Android APK.
 **Still pending:** a verified successful Skia ARM64 and original `app-lib`
 link, real editor startup, editable layers, file operations, IME and Android
 device tests. No installable release is claimed.
+
+## October 18 — asset recovery, authentic keyboard and targeted Skia build
+
+- The native Android Activity now stages original Aseprite assets to
+  `.installing` temporary files, syncs them and atomically renames them.
+  An interrupted copy is retried instead of treating a partial file as ready.
+- Original LAF Android keyboard mapping now handles punctuation and
+  navigation scancodes used for shortcuts; the header-based key test was
+  expanded and remains part of GitHub preflight (new run not yet confirmed).
+- The source contract check now verifies the original asset staging gate.
+- The full ARM64 GitHub workflow watches native JNI/CMake/LAF code changes
+  and compiles **only** the genuine Skia, skshaper and skunicode targets
+  needed by the original LAF backend, rather than Skia's entire `modules`
+  group.
+- Two available local tests were executed: the CMake configure-only JNI
+  topology test and the raster unit test using Clang AddressSanitizer and
+  UndefinedBehaviorSanitizer. Both passed.
+- **Not yet verified:** a successfully completed Android Skia build,
+  a linked `libaseprite.so`, the original editor GUI on an Android device,
+  or an installable APK. Source-level/host checks are not substitutes.
+
