@@ -26,5 +26,23 @@ int main() {
   assert(!blitNearest({src,2,2,4,PixelOrder::BGRA},b,2,{0,0,4,4}));
   assert(!blitNearest(a,b,0,{0,0,4,4}));
   assert(!blitNearest(a,{nullptr,4,4,24},2,{0,0,4,4}));
-  std::cout << "PASS: nearest neighbor, BGRA to RGBA, padding, clipping, validation\n";
+  // On ultrawide windows we must leave neutral bars, not smear edge pixels.
+  std::vector<uint8_t> wider(8*4*4,0xcd);
+  WritePixels wide{wider.data(),6,4,32};
+  assert(blitNearest(a,wide,2,{0,0,6,4}));
+  auto solidBlack=[&](int x,int y){
+    int i=y*32+x*4;
+    assert(wider[i]==0 && wider[i+1]==0 && wider[i+2]==0 && wider[i+3]==255);
+  };
+  solidBlack(0,0);
+  solidBlack(5,3);
+  assert(wider[4]==1 && wider[5]==2 && wider[6]==3);
+  assert(wider[4*4]==4 && wider[4*4+1]==5 && wider[4*4+2]==6);
+  assert(wider[6*4]==0xcd);
+  uint8_t rgba[]={20,30,40,255};
+  uint8_t out[4]={};
+  assert(blitNearest({rgba,1,1,4,PixelOrder::RGBA},
+                     {out,1,1,4},1,{0,0,1,1}));
+  assert(out[0]==20 && out[1]==30 && out[2]==40 && out[3]==255);
+  std::cout << "PASS: nearest neighbor, letterbox, BGRA/RGBA, stride, clipping\n";
 }
