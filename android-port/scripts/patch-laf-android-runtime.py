@@ -34,12 +34,6 @@ def main():
         elif not a.dry_run:
             destination.parent.mkdir(parents=True,exist_ok=True)
             shutil.copyfile(source,destination)
-    system=laf/'os/android/system.h'
-    update(system,'#include "os/android/screen.h"',
-        '#include "os/android/screen.h"\n#include "os/android/key_state.h"',a.dry_run)
-    update(system,'public:\n  ScreenRef primaryScreen() override',
-        'public:\n  bool isKeyPressed(KeyScancode key) override { return androidIsKeyPressed(key); }\n'
-        '  ScreenRef primaryScreen() override',a.dry_run)
     # The registered window is intentionally held until the app_main thread
     # exits and JNI releases it; no unprotected cross-thread raw pointer.
     skia=laf/'os/skia/skia_window.cpp'
