@@ -57,6 +57,15 @@ endif()
             raise RuntimeError('Original shared JNI target was not generated')
         if 'aseprite-android-touch' not in output:
             raise RuntimeError('Android native touch target was not generated')
+        # Removing original laf-os must fail closed; no replacement GUI.
+        original_cmake = (source / 'CMakeLists.txt').read_text()
+        (source / 'CMakeLists.txt').write_text(
+            original_cmake.replace('add_library(laf-os INTERFACE)\n', ''))
+        broken = subprocess.run(
+            ['cmake', '-S', str(source), '-B', str(Path(temp) / 'missing-laf'), '-G', 'Ninja'],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        if broken.returncode == 0 or 'Missing original Aseprite targets' not in broken.stdout:
+            raise RuntimeError('Missing original laf-os was incorrectly accepted')
     print('PASS: original CMake project preserved; real JNI/touch targets configured (no build)')
 
 
