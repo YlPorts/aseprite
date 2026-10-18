@@ -11,9 +11,16 @@ endif()
 if(NOT LAF_BACKEND STREQUAL "skia")
   message(FATAL_ERROR "Original editor requires its Skia renderer, not a fake UI")
 endif()
-# The raster presenter is already compiled into laf-os by the guarded
-# platform overlay. Do not link its standalone archive again.
-add_subdirectory(${CMAKE_SOURCE_DIR}/android-port ${CMAKE_BINARY_DIR}/android-port-native)
+# Build the touch module directly inside ORIGINAL Aseprite's CMake
+# project. Re-entering android-port/CMakeLists.txt would run another project()
+# and unexpectedly change the top-level CMake project context.
+# Raster code is compiled ONCE inside laf-os by the guarded LAF overlay.
+add_library(aseprite-android-touch STATIC
+  ${CMAKE_SOURCE_DIR}/android-port/src/android/touch_router.cpp
+  ${CMAKE_SOURCE_DIR}/android-port/src/android/native_motion.cpp)
+target_include_directories(aseprite-android-touch PUBLIC
+  ${CMAKE_SOURCE_DIR}/android-port/src/android)
+target_link_libraries(aseprite-android-touch PUBLIC android)
 add_library(aseprite SHARED
   ${CMAKE_SOURCE_DIR}/src/main/main.cpp
   ${CMAKE_SOURCE_DIR}/android-port/src/android/jni_editor_entry.cpp
