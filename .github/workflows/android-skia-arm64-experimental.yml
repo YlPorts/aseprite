@@ -53,5 +53,6 @@ jobs:
           test -s "$LIB/libskia.a"
           test -s "$LIB/libskshaper.a"
           test -s "$LIB/libskunicode.a"
-          "$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" t "$LIB/libskia.a" | head -n 12
+          "$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" t "$LIB/libskia.a" > build/skia/arm64-objects.txt
+          sed -n '1,12p' build/skia/arm64-objects.txt
           echo 'Standalone Skia libraries only; NO Aseprite build or APK.'
