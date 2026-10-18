@@ -8,6 +8,12 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.content.Context;
+import android.text.InputType;
+import android.view.inputmethod.BaseInputConnection;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputMethodManager;
 import java.io.File;
 import java.io.InputStream;
 import java.io.FileOutputStream;
@@ -17,11 +23,68 @@ import java.io.IOException;
 public final class AsepriteActivity extends Activity implements SurfaceHolder.Callback {
     private static final int IMMERSIVE=0x00000002|0x00000004|0x00001000|0x00000200|0x00000400;
     static { System.loadLibrary("aseprite"); }
+    private static volatile AsepriteActivity activeActivity;
     private SurfaceView canvas;
+
+    // The original C++ LAF requests/hides text input. All Java UI work
+    // stays on the Android main thread, not on Aseprite's C++ render thread.
+    private static void setImeEnabledFromNative(boolean enabled) {
+        AsepriteActivity activity=activeActivity;
+        if(activity==null) return;
+        activity.runOnUiThread(()->{
+            if(activeActivity!=activity || activity.canvas==null || activity.isFinishing()) return;
+            InputMethodManager manager=(InputMethodManager)
+                activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+            if(manager==null) return;
+            if(enabled){
+                activity.canvas.requestFocus();
+                manager.restartInput(activity.canvas);
+                manager.showSoftInput(activity.canvas,InputMethodManager.SHOW_IMPLICIT);
+            }else{
+                manager.hideSoftInputFromWindow(activity.canvas.getWindowToken(),0);
+            }
+        });
+    }
+
+    // Android input connection feeds characters into Aseprite's authentic
+    // os::Event queue; it never creates another text or sprite editor.
+    private static final class EditorSurfaceView extends SurfaceView {
+        EditorSurfaceView(Context context){super(context);}
+        @Override public boolean onCheckIsTextEditor(){return true;}
+        @Override public InputConnection onCreateInputConnection(EditorInfo info){
+            info.inputType=InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE;
+            info.imeOptions=EditorInfo.IME_FLAG_NO_EXTRACT_UI;
+            return new BaseInputConnection(this,false){
+                @Override public boolean commitText(CharSequence text,int cursorPosition){
+                    if(text==null) return false;
+                    for(int i=0;i<text.length();){
+                        int cp=Character.codePointAt(text,i);
+                        nativeCommitText(cp);
+                        i+=Character.charCount(cp);
+                    }
+                    return true;
+                }
+                @Override public boolean deleteSurroundingText(int before,int after){
+                    if(before>0){
+                        nativeKey(KeyEvent.ACTION_DOWN,KeyEvent.KEYCODE_DEL,0,0);
+                        nativeKey(KeyEvent.ACTION_UP,KeyEvent.KEYCODE_DEL,0,0);
+                    }
+                    return true;
+                }
+                @Override public boolean sendKeyEvent(KeyEvent event){
+                    nativeKey(event.getAction(),event.getKeyCode(),
+                              event.getUnicodeChar(),event.getMetaState());
+                    return true;
+                }
+            };
+        }
+    }
     private boolean nativeStarted=false;
     private boolean assetsReady=false;
     private boolean loadingAssets=false;
 
+    private static native void nativeRegisterImeBridge();
+    private static native void nativeCommitText(int codepoint);
     private static native void nativeAttachSurface(Surface surface);
     private static native boolean nativeStartOriginalEditor(String filesRoot);
     private static native void nativeTouch(int action,int pointerIndex,int[] ids,
@@ -33,7 +96,9 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
         super.onCreate(state);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         getWindow().getDecorView().setSystemUiVisibility(IMMERSIVE);
-        canvas=new SurfaceView(this);
+        activeActivity=this;
+        nativeRegisterImeBridge();
+        canvas=new EditorSurfaceView(this);
         canvas.getHolder().addCallback(this);
         canvas.setFocusable(true);
         canvas.setFocusableInTouchMode(true);
@@ -161,5 +226,9 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
         super.onResume();
         nativeAppFocus(true);
         getWindow().getDecorView().setSystemUiVisibility(IMMERSIVE);
+    }
+    @Override protected void onDestroy(){
+        if(activeActivity==this) activeActivity=null;
+        super.onDestroy();
     }
 }
