@@ -42,7 +42,8 @@ def main():
     replace_once(cmake,
         '  list(APPEND LAF_OS_SOURCES android/event_queue.cpp)',
         '  list(APPEND LAF_OS_SOURCES android/event_queue.cpp android/window.cpp android/screen.cpp)',
-        args.dry_run)
+        args.dry_run,
+        accepted_later='android/event_queue.cpp android/window.cpp android/screen.cpp android/window_registry.cpp')
     replace_once(cmake,
         '    message(FATAL_ERROR "Android SkiaWindow backend not implemented: do not build a fake editor")',
         '    # Android window is selected in the Skia sources dispatch below.',
