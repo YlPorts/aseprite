@@ -26,6 +26,15 @@ int main() {
   assert(!blitNearest({src,2,2,4,PixelOrder::BGRA},b,2,{0,0,4,4}));
   assert(!blitNearest(a,b,0,{0,0,4,4}));
   assert(!blitNearest(a,{nullptr,4,4,24},2,{0,0,4,4}));
+  // The viewport used by input mapping must exactly match presentation.
+  const auto centered=rasterViewport(2,2,6,4,2);
+  assert(centered.x==1 && centered.y==0);
+  assert(centered.width==4 && centered.height==4);
+  const auto narrow=rasterViewport(2,2,4,8,2);
+  assert(narrow.x==0 && narrow.y==2);
+  const auto nativeSize=rasterViewport(320,180,640,360,2);
+  assert(nativeSize.x==0 && nativeSize.y==0);
+  assert(rasterViewport(0,2,6,4,2).width==0);
   // On ultrawide windows we must leave neutral bars, not smear edge pixels.
   std::vector<uint8_t> wider(8*4*4,0xcd);
   WritePixels wide{wider.data(),6,4,32};
