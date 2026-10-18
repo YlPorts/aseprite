@@ -146,3 +146,24 @@ Java_com_ylports_aseprite_AsepriteActivity_nativeKey(
   event.setModifiers(mods);
   os::queue_event(event);
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_ylports_aseprite_AsepriteActivity_nativeAppFocus(
+    JNIEnv*,jclass,jboolean focused) {
+  if(!originalEditorStarted.load(std::memory_order_acquire)) return;
+  const auto window=os::androidAcquireWindow();
+  if(!focused) {
+    std::lock_guard<std::mutex> lock(touchMutex);
+    aseandroid::Frame cancel{};
+    cancel.action=aseandroid::Action::Cancel;
+    auto gestures=touchRouter.process(cancel);
+    if(window) aseandroid::postToLaf(gestures,window);
+    os::androidClearPressedKeys();
+  }
+  if(window) {
+    os::Event event;
+    event.setType(focused?os::Event::AppEnter:os::Event::AppLeave);
+    event.setWindow(window);
+    os::queue_event(event);
+  }
+}
