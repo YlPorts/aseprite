@@ -45,6 +45,9 @@ ime_header=(root/"src/android/android_ime_bridge.h").read_text()
 assert "nativeRegisterImeBridge();" in java
 assert "nativeCommitText(int codepoint)" in java
 assert "onCreateInputConnection(EditorInfo info)" in java
+assert "return ((AsepriteActivity)getContext()).textInputRequested;" in java
+assert "if(!onCheckIsTextEditor()) return null;" in java
+assert "activity.textInputRequested=enabled;" in java
 assert "setImeEnabledFromNative(boolean enabled)" in java
 assert "Character.codePointAt(text,i)" in java
 assert "nativeCommitText(cp);" in java
