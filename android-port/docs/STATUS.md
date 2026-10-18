@@ -217,3 +217,28 @@ verificados.
 runs and the full ARM64 `libaseprite.so` link have not been confirmed
 successful. This is still **not** a functional Android APK.
 
+
+## Current continuation — CMake integration and native safety
+
+- The original Aseprite Android JNI CMake target no longer recursively enters
+  `android-port/CMakeLists.txt` (a standalone tests project which called
+  `project()` again). Instead it links the genuine touch adapter sources
+  directly while the original LAF backend links the raster presenter once.
+- Added a configure-only CMake smoke test of the JNI target graph. The test
+  is run on a temporary mock CMake context, **does not compile or distribute
+  a substitute editor**, verifies that the original project name is unchanged,
+  and asserts failure if the genuine `laf-os` target is absent.
+- The smoke test was **executed locally** and passed for both the normal and
+  deliberately broken configuration. CI is configured to repeat it.
+- Tightened `ANativeWindow_Buffer` pixel stride validation to avoid integer
+  overflow and invalid buffer access before copying raster pixels.
+- The portable raster presenter and matching letterbox test were compiled
+  and run locally with Clang AddressSanitizer + UndefinedBehaviorSanitizer;
+  the test passed.
+- Android ARM64 Actions now writes the first CMake/Clang/link errors to the
+  GitHub step summary when the genuine Aseprite editor build fails. It does
+  not publish any APK or proprietary binary.
+
+**Still pending:** a verified successful Skia ARM64 and original `app-lib`
+link, real editor startup, editable layers, file operations, IME and Android
+device tests. No installable release is claimed.
