@@ -98,6 +98,31 @@ def main():
         'if(UNIX AND NOT APPLE)\n  # Change the kN32_SkColorType',
         'if(UNIX AND NOT APPLE AND NOT ANDROID)\n  # Change the kN32_SkColorType',
         args.dry_run)
+    # Original LAF SkiaSurface::getBitmap() references Skia's GPU-only
+    # private raster classes even when SK_SUPPORT_GPU=0. Guard the fallback:
+    # Android's software bitmap path returns m_bitmap before this section.
+    surface=laf/'os/skia/skia_surface.cpp'
+    replace_once(surface,
+        '  // The SkSurface_Raster::skBitmap() member function was added by us',
+        '#if SK_SUPPORT_GPU\\n'
+        '  // The SkSurface_Raster::skBitmap() member function was added by us',
+        args.dry_run)
+    replace_once(surface,
+        '      return &raster->skBitmap();\\n'
+        '    }\\n'
+        '  }\\n\\n'
+        '  return nullptr;',
+        '      return &raster->skBitmap();\\n'
+        '    }\\n'
+        '  }\\n'
+        '#endif\\n\\n'
+        '  return nullptr;',
+        args.dry_run)
+    # Do not run the desktop-only libc++ probing logic for Android NDK.
+    replace_once(skia,
+        'if(UNIX AND NOT APPLE AND EXISTS "${SKIA_LIBRARY_DIR}/args.gn")',
+        'if(UNIX AND NOT APPLE AND NOT ANDROID AND EXISTS "${SKIA_LIBRARY_DIR}/args.gn")',
+        args.dry_run)
     for rel in ('os/android/screen.h','os/android/screen.cpp',
                 'os/android/window.h','os/android/window.cpp',
                 'os/android/system.h',
