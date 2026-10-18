@@ -24,6 +24,7 @@ ORIGINAL_FILES = [
     "src/app/resource_finder.cpp",
     "laf/base/CMakeLists.txt",
     "laf/base/platform.h",
+    "laf/base/platform_unix.cpp",
     "laf/os/CMakeLists.txt",
     "laf/os/common/event_queue.cpp",
     "laf/os/skia/skia_window.h",
@@ -64,6 +65,7 @@ def verify(source_root):
     cmake = (source_root / "laf/os/CMakeLists.txt").read_text()
     skia = (source_root / "laf/os/skia/skia_system.h").read_text()
     cmake_skia = (source_root / "laf/cmake/FindSkia.cmake").read_text()
+    unix = (source_root / "laf/base/platform_unix.cpp").read_text()
     surface = (source_root / "laf/os/skia/skia_surface.cpp").read_text()
     main = (source_root / "laf/os/skia/skia_window.cpp").read_text()
     engine = (source_root / "CMakeLists.txt").read_text()
@@ -78,6 +80,8 @@ def verify(source_root):
     assert "android/window_registry.cpp android/key_state.cpp" in cmake
     assert "SK_SUPPORT_GPU=$<IF:$<BOOL:${ANDROID}>,0,1>" in cmake_skia
     assert "NOT APPLE AND NOT ANDROID AND EXISTS" in cmake_skia
+    assert "#include \"base/platform.h\"\\n#if LAF_LINUX" in unix
+    assert "} // namespace base\\n#endif // LAF_LINUX" in unix
     assert "androidUnregisterWindow(nullptr);" in skia
     assert "#if SK_SUPPORT_GPU\n  // The SkSurface_Raster" in surface
     assert "#endif\n\n  return nullptr;" in surface
