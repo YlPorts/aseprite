@@ -24,6 +24,11 @@ public:
   bool isVisible() const override { return m_visible; }
   void setVisible(bool visible) override { m_visible=visible; }
   void invalidateRegion(const gfx::Region& rgn) override;
+  // Required by the genuine SkiaSystem::setTextInput() call path.
+  // The future IME adapter must forward this state to Android's input method.
+  void setTextInput(bool enabled,const gfx::Point& caretPos = {}) {
+    (void)enabled; (void)caretPos;
+  }
   void activate() override { }
   void maximize() override { }
   void minimize() override { }
