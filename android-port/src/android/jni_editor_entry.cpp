@@ -36,13 +36,19 @@ void startOriginalAseprite(std::string filesRoot) {
   char name[]="aseprite";
   char* argv[]={name,nullptr};
   originalEditorStarted.store(true,std::memory_order_release);
+  __android_log_print(ANDROID_LOG_INFO,"AsepriteAndroid",
+                      "Starting genuine Aseprite app_main() from JNI thread");
   try {
-    (void)app_main(1,argv);
+    const int exitCode=app_main(1,argv);
+    __android_log_print(ANDROID_LOG_INFO,"AsepriteAndroid",
+                        "Original editor app_main exited with code %d",exitCode);
   } catch (...) {
     __android_log_print(ANDROID_LOG_ERROR,"AsepriteAndroid",
                         "Original Aseprite app_main terminated with exception");
   }
   originalEditorStarted.store(false,std::memory_order_release);
+  __android_log_print(ANDROID_LOG_WARN,"AsepriteAndroid",
+                      "Native editor thread ended; not restarting automatically");
   os::androidClearPressedKeys();
   os::androidUnregisterWindow(nullptr);
 }
