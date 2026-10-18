@@ -29,6 +29,9 @@ assert "app_main(1,argv)" in jni, "Must launch original Aseprite app_main"
 assert "AsepriteAndroid" in jni and "Original editor app_main exited with code" in jni
 assert "dynamic_cast<os::WindowAndroid*>" not in jni
 assert "rasterViewport(" in bridge and "rasterViewport(" in raster
+magnify=bridge.split('case GestureType::Magnify:',1)[-1]
+assert "event.setPosition(logicalPosition(g,window));" in magnify, (
+    "Pinch-zoom center must map to the original Skia logical viewport")
 assert "surface->width()" in bridge and "surface->height()" in bridge
 assert "static ScreenRef primary=make_ref<ScreenAndroid>();" in screen
 assert "return androidPrimaryScreen();" in system
