@@ -1,35 +1,52 @@
-# Android port status — work in progress
+# Android native port status — experimental (not yet an APK)
 
-Source: original `YlPorts/aseprite` fork of `aseprite/aseprite`.
-Branch: `android-native-port-wip`.
+Original Aseprite source: `YlPorts/aseprite`, branch `android-native-port-wip`.
 
-## Present in source
-- C++ touch gesture arbitration and stylus/pressure paths.
-- NDK `AInputEvent` decoder, not yet attached to Android's Activity.
-- Translation to existing LAF `os::Event` mouse/space/magnify events.
-- Thread-safe Android LAF event queue implementation and headless patch.
-- CMake builds for Linux host tests and Android NDK ARM64 module.
-- No new drawing engine or alternative interface.
+## Implemented in this branch
 
-## Verified
-- Host test build and 2/2 CTest cases passed locally.
-- Android NDK CI result is pending; do not claim it succeeded.
-- No complete Aseprite compile, launch, or APK has been tested.
+- Touch arbitration: single-finger paint, pressure, pen, eraser, dual-finger pan and pinch.
+- Conversion to genuine `laf/os::Event` input types.
+- Native NDK input decoder for `AInputEvent` (Activity hookup still missing).
+- Thread-safe Android queue for the original LAF `EventQueue` API.
+- **Raster Skia output**: 32-bit RGBA/BGRA pixels, neighbor-nearest integer scaling,
+  row stride, clipped updates and native `ANativeWindow` lock/unlock/post.
+- An experimental `ScreenAndroid`, `SystemAndroid`, `WindowAndroid` and
+  `SkiaWindowAndroid` adapter as an overlay on the original LAF sources,
+  without redrawing/reimplementing Aseprite's UI.
+- Guarded overlay patch script `patch-laf-android-raster.py` to apply
+  after `patch-laf-headless-android.py`.
+- Ubuntu CTest and NDK `arm64-v8a` module checks, plus experimental CI
+  for `doc-lib`, `render-lib`, and `dio-lib`.
 
-## Missing critical subsystems
-1. `os::SystemAndroid`, `os::WindowAndroid`, surface lifecycle and resize.
-2. Skia Android GPU/raster backend and pixel-perfect presentation.
-3. Original Aseprite `app_main()` integration with NativeActivity/Java.
-4. Build `gen` on Ubuntu host, cross-compile and link original `app-lib`.
-5. Android SAF file dialogs and content-URI handling, autosave/recovery.
-6. Text IME, hardware keys/mouse, app suspend/resume, DPI/insets.
-7. End-to-end verification of all original tools/formats/timeline.
-8. APK packaging, signing, device tests on Mali-G57 MC2.
+## Actually verified
 
-## License and privacy
+- In local Linux host build: **3/3 CTest** (touch, event queue, raster presentation).
+- The raster backend, original LAF overlay, NDK ABI, and full editor remain
+  **UNVERIFIED at runtime**. CI has been committed but no passing run has been
+  confirmed through the available connector.
+- No APK was compiled. No original Aseprite GUI function is claimed operational.
 
-Aseprite's EULA permits compiling/modifying source for personal use or to
-propose a contribution and restricts distribution. The public fork must not
-publish a complete Aseprite APK. Keep private build artifacts private.
+## Known blockers
 
-This branch only adds separate native platform-layer source and tests.
+1. Connect Android Activity/native input queue/lifecycle to `app_main()`.
+2. Compile the original `laf` Skia backend with Android-built Skia m124,
+   including adjustment of renderer's native format/canvas sizing.
+3. Wire event propagation, complete keyboard and IME, native dialogs and clipboard.
+4. Compile/link original `app-lib`, generate resource headers with host `gen`.
+5. Package authentic `data/` themes/fonts/icons/strings in APK assets.
+6. SAF open/save, URI permission persistence, safe autosave/recovery.
+7. Performance, window resizing/rotation, multiple panels, external inputs.
+8. Verify with an ARM64 Android device and functionality checklist.
+
+**Important limitations:** current window adapter supports the primary native
+surface only. `invalidateRegion()` is deferred to the authentic
+`ui::Display::flip()` → `swapBuffers()` path; finer dirty-region
+scheduling, native dialogs, external windows, and EGL acceleration remain.
+Android raster is CPU-based, not GPU-accelerated yet.
+
+## License
+
+Aseprite EULA restricts modifying and building source to personal use or
+contributions, and prohibits distributing binaries. This fork is PUBLIC.
+No compiled Aseprite binary should be published here. For private CI
+artifacts, use a separate private repository (not a public GitHub fork).
