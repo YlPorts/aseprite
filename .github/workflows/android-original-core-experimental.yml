@@ -30,8 +30,13 @@ jobs:
             libfontconfig1-dev
       - name: Install Android NDK using runner SDK
         run: |
-          command -v sdkmanager
-          sdkmanager --install 'ndk;27.2.12479018'
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          test -x "$SDKMANAGER"
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --install 'ndk;27.2.12479018'
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
       - name: Ensure LAF Android headless patch is applicable
         run: |
           python3 android-port/scripts/patch-laf-headless-android.py . --dry-run
