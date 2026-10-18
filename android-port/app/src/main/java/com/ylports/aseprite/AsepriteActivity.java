@@ -33,12 +33,13 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
         if(activity==null) return;
         activity.runOnUiThread(()->{
             if(activeActivity!=activity || activity.canvas==null || activity.isFinishing()) return;
+            activity.textInputRequested=enabled;
             InputMethodManager manager=(InputMethodManager)
                 activity.getSystemService(Context.INPUT_METHOD_SERVICE);
             if(manager==null) return;
+            manager.restartInput(activity.canvas);
             if(enabled){
                 activity.canvas.requestFocus();
-                manager.restartInput(activity.canvas);
                 manager.showSoftInput(activity.canvas,InputMethodManager.SHOW_IMPLICIT);
             }else{
                 manager.hideSoftInputFromWindow(activity.canvas.getWindowToken(),0);
@@ -50,8 +51,11 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
     // os::Event queue; it never creates another text or sprite editor.
     private static final class EditorSurfaceView extends SurfaceView {
         EditorSurfaceView(Context context){super(context);}
-        @Override public boolean onCheckIsTextEditor(){return true;}
+        @Override public boolean onCheckIsTextEditor(){
+            return ((AsepriteActivity)getContext()).textInputRequested;
+        }
         @Override public InputConnection onCreateInputConnection(EditorInfo info){
+            if(!onCheckIsTextEditor()) return null;
             info.inputType=InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE;
             info.imeOptions=EditorInfo.IME_FLAG_NO_EXTRACT_UI;
             return new BaseInputConnection(this,false){
@@ -80,6 +84,7 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
         }
     }
     private boolean nativeStarted=false;
+    private volatile boolean textInputRequested=false;
     private boolean assetsReady=false;
     private boolean loadingAssets=false;
 
