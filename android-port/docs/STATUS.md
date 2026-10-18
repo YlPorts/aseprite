@@ -83,6 +83,21 @@ Original Aseprite source: `YlPorts/aseprite`, branch `android-native-port-wip`.
 El editor original y el backend Android completo NO se han compilado ni
 probado en el dispositivo. La CI no tiene resultados concluyentes confirmados.
 
+## Nueva compilación integral (experimental)
+
+El script `android-port/scripts/try-build-original-editor-arm64.sh`
+intenta, tras compilar Skia m124 Android ARM64 en GitHub Actions:
+
+- Ejecutar los cuatro parches sobre los fuentes originales.
+- Construir `gen` en el host Linux (no en Android).
+- Configurar CMake con NDK ARM64, Skia raster y PIC.
+- Enlazar el `app_main()` auténtico, `app-lib` y `laf-os` para generar
+  una biblioteca JNI genuina `libaseprite.so`.
+
+Esto es un **intento reproducible**, NO un binario conseguido. La compilación
+puede fallar mientras se corrigen dependencias/portabilidad y no tiene
+resultados confirmados aquí. El workflow no crea/publica una APK.
+
 ## Known blockers
 
 1. **Validate and fix** the new Activity/JNI `app_main()` integration in real NDK builds.
