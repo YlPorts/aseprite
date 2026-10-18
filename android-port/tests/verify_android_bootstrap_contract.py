@@ -60,4 +60,12 @@ assert "static ScreenRef primary=make_ref<ScreenAndroid>();" in screen
 assert "return androidPrimaryScreen();" in system
 assert "return androidPrimaryScreen();" in window
 assert "androidSetPointerPosition(position.x*scale(), position.y*scale())" in window
+assert "std::atomic_bool m_paintQueued{false}" in window_header
+assert "m_paintQueued.exchange(true" in window
+assert "redraw.setType(os::Event::Callback)" in window
+assert "redraw.setCallback([self]" in window
+assert "os::queue_event(redraw)" in window
+assert "window->onPaint(window->bounds())" in window
+assert "onResize(clientSize());" in window and "invalidate();" in window
+
 print("PASS: original editor JNI return contract, startup gating and screen identity")
