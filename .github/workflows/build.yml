@@ -1,5 +1,12 @@
 name: build
-on: [push, pull_request]
+# Desktop CI remains on main and other branches. The experimental Android
+# branch has dedicated jobs and must not launch the full desktop matrix after
+# every native patch; main's workflow is left unchanged.
+on:
+  push:
+    branches-ignore:
+      - android-native-port-wip
+  pull_request:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
