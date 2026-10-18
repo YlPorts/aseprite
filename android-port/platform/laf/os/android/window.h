@@ -4,6 +4,7 @@
 #include "os/native_cursor.h"
 #include "os/window.h"
 #include "os/window_spec.h"
+#include <atomic>
 #include <string>
 namespace os {
 // Main Android surface facade conforming to original LAF Window interface.
@@ -61,5 +62,7 @@ private:
   int m_scale=1;
   bool m_visible=true;
   NativeCursor m_cursor=NativeCursor::Arrow;
+  // Batch redraws; one callback per burst on the actual Aseprite UI thread.
+  std::atomic_bool m_paintQueued{false};
 };
 } // namespace os
