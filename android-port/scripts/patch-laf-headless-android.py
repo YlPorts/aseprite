@@ -52,6 +52,18 @@ def main():
         "  static constexpr OS os =\n#if LAF_WINDOWS",
         "  static constexpr OS os =\n#if LAF_ANDROID\n    OS::Android\n#elif LAF_WINDOWS",
         args.dry_run)
+    # Android also compiles the Unix source list, but this implementation
+    # uses get_linux_release_info() and types declared only for LAF_LINUX.
+    # Guard the Linux-only function without altering desktop behavior.
+    p = laf / "base/platform_unix.cpp"
+    replace_once(p,
+        '#include "base/platform.h"',
+        '#include "base/platform.h"\n#if LAF_LINUX',
+        args.dry_run)
+    replace_once(p,
+        '} // namespace base',
+        '} // namespace base\n#endif // LAF_LINUX',
+        args.dry_run)
     p = laf / "os/common/event_queue.cpp"
     replace_once(p,
         '#if LAF_WINDOWS\n  #include "os/win/event_queue.h"',
