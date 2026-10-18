@@ -3,6 +3,7 @@
 #include "os/keys.h"
 #include "os/android/key_state.h"
 #include "gfx/point.h"
+#include "raster_presenter.h"
 #include <algorithm>
 #include <cmath>
 namespace aseandroid {
@@ -27,8 +28,12 @@ gfx::Point logicalPosition(const Gesture& g,const os::WindowRef& window) {
   // Original LAF x11/win backends divide physical touch/mouse coordinates
   // by window UI scale before queuing Mouse/TouchMagnify events.
   const int scale=std::max(1,window->scale());
-  return gfx::Point(static_cast<int>(std::lround(g.x))/scale,
-                    static_cast<int>(std::lround(g.y))/scale);
+  const int dstW=window->width(),dstH=window->height();
+  const auto viewport=rasterViewport(
+      std::max(1,dstW/scale),std::max(1,dstH/scale),
+      dstW,dstH,scale);
+  return gfx::Point((static_cast<int>(std::lround(g.x))-viewport.x)/scale,
+                    (static_cast<int>(std::lround(g.y))-viewport.y)/scale);
 }
 void mouse(os::Event::Type type, const Gesture& g, const os::WindowRef& window, bool pan) {
   os::Event event;
