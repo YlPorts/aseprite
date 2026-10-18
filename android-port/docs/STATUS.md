@@ -166,3 +166,31 @@ CI run completes and its logs are inspected.
 - **Importante:** no hay compilación completa `libaseprite.so` verificada
   ni APK jugable. No confundir fuente corregida con ejecución exitosa.
 
+
+## Puerta de salida: primera APK real — criterios pendientes
+
+El proyecto **no está próximo a una versión instalable verificada** sólo por
+haber agregado código de plataforma. La prioridad sigue siendo lograr esta
+secuencia con evidencia de ejecución:
+
+1. **Skia Android AArch64**: compilación correcta de `skia`, `skshaper`
+   y `skunicode` desde la rama original `aseprite-m124`.
+2. **LAF + motor original**: construcción y enlace auténticos de
+   `app-lib`, `laf-os` y `src/main/main.cpp` en `libaseprite.so`.
+3. **Arranque real**: SurfaceView carga los recursos y aparece la interfaz
+   original, no una pantalla vacía ni un editor alternativo.
+4. **Operaciones del editor**: abrir, crear, dibujar, capas, deshacer,
+   guardar y recuperar ficheros sin corrupción.
+5. **Integración del móvil**: entrada táctil, IME, ciclo de vida Android,
+   ultrawide sin distorsión y pruebas de estabilidad/rendimiento en
+   hardware ARM64.
+
+**Esta continuación:** se corrigió una aserción del test de parches que
+interpretaba `\\n` como texto literal. Se introdujo una única referencia
+persistente `androidPrimaryScreen()` compartida por `SystemAndroid` y
+`WindowAndroid`, para respetar la identidad de pantalla esperada por LAF;
+`WindowAndroid::setMousePosition()` ahora actualiza el cursor interno en
+coordenadas físicas usando el escalado de la interfaz. Los nuevos cambios
+están subidos pero la compilación integral ARM64 y el arranque real no están
+verificados.
+
