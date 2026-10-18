@@ -55,10 +55,12 @@ jobs:
           gn gen out/Release-Android-arm64 --args="$ARGS"
           grep -Eq 'target_os[[:space:]]*=[[:space:]]*"android"' out/Release-Android-arm64/args.gn
           grep -Eq 'target_cpu[[:space:]]*=[[:space:]]*"arm64"' out/Release-Android-arm64/args.gn
-      - name: Compile original ARM64 Skia and modules
+      - name: Compile only original ARM64 Skia, Shaper and Unicode
         working-directory: build/skia
         run: |
-          ninja -C out/Release-Android-arm64 -j 2 skia modules
+          # Avoid unrelated skottie, SVG and paragraph modules. The original
+          # Aseprite LAF FindSkia only links these three GN libraries.
+          ninja -C out/Release-Android-arm64 -j 2 skia skshaper skunicode
       - name: Verify original Skia output without uploading binaries
         run: |
           LIB="$GITHUB_WORKSPACE/build/skia/out/Release-Android-arm64"
