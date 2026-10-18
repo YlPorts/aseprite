@@ -7,6 +7,12 @@ on:
       - 'android-port/**'
       - '.github/workflows/android-port-checks.yml'
 
+# Keep one active run and only the latest pending commit on this branch.
+# Do not interrupt a long-running authentic ARM64 build on each source edit.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   host-tests:
     runs-on: ubuntu-24.04
