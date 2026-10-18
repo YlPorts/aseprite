@@ -4,6 +4,7 @@
 #include "os/event.h"
 #include "os/event_queue.h"
 #include "android_raster_window.h"
+#include "android_ime_bridge.h"
 #include <algorithm>
 namespace os {
 WindowAndroid::WindowAndroid(const WindowSpec& spec)
@@ -30,6 +31,10 @@ void WindowAndroid::setScale(int scale) {
   if(m_scale==scale) return;
   m_scale=scale;
   if(width()>0 && height()>0) onResize(clientSize());
+}
+void WindowAndroid::setTextInput(bool enabled, const gfx::Point& caretPos) {
+  (void)caretPos; // The platform IME is anchored to the focused SurfaceView.
+  aseandroid::requestOriginalEditorIme(enabled);
 }
 void WindowAndroid::invalidateRegion(const gfx::Region& rgn) {
   // TODO: schedule async invalidated-region paint on Aseprite UI thread.
