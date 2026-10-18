@@ -113,15 +113,31 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
     private void copyAssets(String assetPath,File dest) throws IOException {
         String[] children=getAssets().list(assetPath);
         if(children==null || children.length==0){
-            if(dest.isFile()) return;
+            // A process kill during the first install must not leave a
+            // partially-written original Aseprite resource marked as ready.
             File parent=dest.getParentFile();
             if(parent==null || (!parent.isDirectory() && !parent.mkdirs()))
                 throw new IOException("Cannot create "+parent);
+            File temporary=new File(parent,dest.getName()+".installing");
+            boolean installed=false;
             try(InputStream in=getAssets().open(assetPath);
-                FileOutputStream out=new FileOutputStream(dest)){
+                FileOutputStream out=new FileOutputStream(temporary)){
                 byte[] bytes=new byte[65536];
                 int n;
                 while((n=in.read(bytes))!=-1)out.write(bytes,0,n);
+                out.getFD().sync();
+            } catch(IOException error){
+                temporary.delete();
+                throw error;
+            }
+            if(dest.exists() && !dest.delete()){
+                temporary.delete();
+                throw new IOException("Cannot replace original resource "+dest);
+            }
+            installed=temporary.renameTo(dest);
+            if(!installed){
+                temporary.delete();
+                throw new IOException("Cannot finalize original resource "+dest);
             }
             return;
         }
