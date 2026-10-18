@@ -1,0 +1,13 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application android:label="Aseprite" android:hasCode="true"
+      android:extractNativeLibs="true" android:usesCleartextTraffic="false">
+    <activity android:name="com.ylports.aseprite.AsepriteActivity"
+      android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|density|uiMode"
+      android:screenOrientation="sensorLandscape" android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>
