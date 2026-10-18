@@ -8,9 +8,9 @@ import argparse
 from pathlib import Path
 import shutil
 
-def replace_once(path, old, new, dry):
+def replace_once(path, old, new, dry, accepted_later=None):
     value=path.read_text(encoding='utf-8')
-    if new in value:
+    if new in value or (accepted_later and accepted_later in value):
         print('EXISTS',path)
         return
     if value.count(old)!=1:
