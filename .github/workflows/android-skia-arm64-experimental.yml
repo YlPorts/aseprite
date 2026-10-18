@@ -13,6 +13,12 @@ on:
       - 'android-port/scripts/patch-laf-android-runtime.py'
       - 'android-port/docs/BUILD_ANDROID.md'
 
+# Keep one active run and only the latest pending commit on this branch.
+# Do not interrupt a long-running authentic ARM64 build on each source edit.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   original-aseprite-android:
     runs-on: ubuntu-24.04
