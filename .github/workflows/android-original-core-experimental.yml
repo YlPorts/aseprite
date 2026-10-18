@@ -7,6 +7,11 @@ on:
       - '.github/workflows/android-original-core-experimental.yml'
   workflow_dispatch:
 
+# Limit backlog; preserve active authentic engine build.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   cross-compile-original-core:
     runs-on: ubuntu-24.04
@@ -23,9 +28,10 @@ jobs:
           sudo apt-get install -y build-essential clang cmake ninja-build python3 \
             libx11-dev libxcursor-dev libxi-dev libxrandr-dev libgl1-mesa-dev \
             libfontconfig1-dev
-      - uses: android-actions/setup-android@v3
-      - name: Install Android NDK
-        run: sdkmanager 'ndk;27.2.12479018'
+      - name: Install Android NDK using runner SDK
+        run: |
+          command -v sdkmanager
+          sdkmanager --install 'ndk;27.2.12479018'
       - name: Ensure LAF Android headless patch is applicable
         run: |
           python3 android-port/scripts/patch-laf-headless-android.py . --dry-run
