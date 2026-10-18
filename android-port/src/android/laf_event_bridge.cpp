@@ -1,6 +1,7 @@
 #include "laf_event_bridge.h"
 #include "os/event.h"
 #include "os/keys.h"
+#include "os/android/key_state.h"
 #include "gfx/point.h"
 #include <cmath>
 namespace aseandroid {
@@ -18,6 +19,7 @@ void space(os::Event::Type type, const os::WindowRef& window) {
   event.setType(type);
   event.setWindow(window);
   event.setScancode(os::kKeySpace);
+  os::androidSetKeyPressed(os::kKeySpace, type==os::Event::KeyDown);
   os::queue_event(event);
 }
 void mouse(os::Event::Type type, const Gesture& g, const os::WindowRef& window, bool pan) {
