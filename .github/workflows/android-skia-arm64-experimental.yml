@@ -41,7 +41,7 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/build/depot_tools:$PATH"
           NDK="$ANDROID_HOME/ndk/27.2.12479018"
           test -d "$NDK"
-          ARGS="is_debug=false is_official_build=false target_cpu=\"arm64\" ndk=\"$NDK\" ndk_api=26 skia_enable_gpu=false skia_enable_graphite=false skia_use_gl=false skia_use_system_expat=false skia_use_system_icu=false skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_libwebp=false skia_use_system_zlib=false skia_use_freetype=true skia_use_harfbuzz=true skia_use_system_freetype2=false skia_use_system_harfbuzz=false"
+          ARGS="is_debug=false is_official_build=false target_os=\"android\" target_cpu=\"arm64\" ndk=\"$NDK\" ndk_api=26 skia_enable_gpu=false skia_enable_graphite=false skia_use_gl=false skia_use_system_expat=false skia_use_system_icu=false skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_libwebp=false skia_use_system_zlib=false skia_use_freetype=true skia_use_harfbuzz=true skia_use_system_freetype2=false skia_use_system_harfbuzz=false"
           bin/gn gen out/Release-Android-arm64 --args="$ARGS"
       - name: Build genuine Skia and modules static libraries
         working-directory: build/skia
