@@ -64,6 +64,11 @@ Window::NativeHandle WindowAndroid::nativeHandle() const {
   return aseandroid::globalRasterWindow().nativeHandle();
 }
 void WindowAndroid::notifySurfaceChanged() {
-  if(width()>0 && height()>0) onResize(clientSize());
+  if(width()>0 && height()>0) {
+    onResize(clientSize());
+    // Repaint an existing editor after Android recreates its SurfaceView,
+    // even if no sprite pixels changed while the screen was detached.
+    invalidate();
+  }
 }
 } // namespace os
