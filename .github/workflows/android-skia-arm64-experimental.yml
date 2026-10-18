@@ -31,8 +31,13 @@ jobs:
           fetch-depth: 1
       - name: Install pinned NDK using runner SDK (no obsolete tools package)
         run: |
-          command -v sdkmanager
-          sdkmanager --install 'ndk;27.2.12479018'
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          test -x "$SDKMANAGER"
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --install 'ndk;27.2.12479018'
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
       - name: Host build tools
         run: |
           sudo apt-get update
