@@ -29,10 +29,10 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 1
-      - name: Set up Android SDK/NDK
-        uses: android-actions/setup-android@v3
-      - name: Install pinned NDK
-        run: sdkmanager 'ndk;27.2.12479018'
+      - name: Install pinned NDK using runner SDK (no obsolete tools package)
+        run: |
+          command -v sdkmanager
+          sdkmanager --install 'ndk;27.2.12479018'
       - name: Host build tools
         run: |
           sudo apt-get update
