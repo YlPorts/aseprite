@@ -1,5 +1,6 @@
 #include "laf_event_bridge.h"
 #include "os/event.h"
+#include "os/surface.h"
 #include "os/keys.h"
 #include "os/android/key_state.h"
 #include "gfx/point.h"
@@ -29,11 +30,18 @@ gfx::Point logicalPosition(const Gesture& g,const os::WindowRef& window) {
   // by window UI scale before queuing Mouse/TouchMagnify events.
   const int scale=std::max(1,window->scale());
   const int dstW=window->width(),dstH=window->height();
-  const auto viewport=rasterViewport(
-      std::max(1,dstW/scale),std::max(1,dstH/scale),
-      dstW,dstH,scale);
-  return gfx::Point((static_cast<int>(std::lround(g.x))-viewport.x)/scale,
-                    (static_cast<int>(std::lround(g.y))-viewport.y)/scale);
+  // Use the actual original Skia window surface, not an inferred size,
+  // because SurfaceView resizing can precede Aseprite's paint resize.
+  auto* surface=window->surface();
+  const int srcW=surface?surface->width():std::max(1,dstW/scale);
+  const int srcH=surface?surface->height():std::max(1,dstH/scale);
+  const auto viewport=rasterViewport(srcW,srcH,dstW,dstH,scale);
+  // Negative coordinates in the black letterbox must stay negative.
+  const auto floorDivide=[](int value,int divisor)->int {
+    return value>=0 ? value/divisor : -((-(int64_t(value))+divisor-1)/divisor);
+  };
+  return gfx::Point(floorDivide(static_cast<int>(std::lround(g.x))-viewport.x,scale),
+                    floorDivide(static_cast<int>(std::lround(g.y))-viewport.y,scale));
 }
 void mouse(os::Event::Type type, const Gesture& g, const os::WindowRef& window, bool pan) {
   os::Event event;
