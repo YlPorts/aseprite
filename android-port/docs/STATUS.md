@@ -64,6 +64,25 @@ Original Aseprite source: `YlPorts/aseprite`, branch `android-native-port-wip`.
 - New GitHub Actions workflows and real editor JNI integration have no
   confirmed passing end-to-end run; do not claim an APK works.
 
+## Correcciones de integración verificadas en esta sesión
+
+- **Parche raster**: `replace_once()` acepta ahora `accepted_later`, usado
+  por la integración tras aplicar el backend de ventanas.
+- **Parche `SkiaSystem`**: corregidas secuencias de salto de línea doblemente
+  escapadas que producirían texto C++ inválido.
+- **Skia GN**: establecido `target_os="android"` además de `target_cpu="arm64"`,
+  y la CI comprueba explícitamente ambos valores antes de compilar.
+- **Renderización ultrawide**: el reescalado entero usa márgenes negros
+  cuando los tamaños físicos no coinciden, sin repetir píxeles de borde;
+  pruebas nuevas para RGBA/BGRA y stride.
+- **Teclado original**: añadido `android_key_state_test.cpp` y ejecución
+  en el preflight de GitHub contra los tipos reales de `laf`.
+
+**Comprobación ejecutada localmente:** compilación CMake de módulos aislados,
+`ctest` 3/3 y prueba raster con AddressSanitizer/UBSan sin fallos detectados.
+El editor original y el backend Android completo NO se han compilado ni
+probado en el dispositivo. La CI no tiene resultados concluyentes confirmados.
+
 ## Known blockers
 
 1. **Validate and fix** the new Activity/JNI `app_main()` integration in real NDK builds.
