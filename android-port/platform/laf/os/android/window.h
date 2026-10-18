@@ -26,9 +26,7 @@ public:
   void invalidateRegion(const gfx::Region& rgn) override;
   // Required by the genuine SkiaSystem::setTextInput() call path.
   // The future IME adapter must forward this state to Android's input method.
-  void setTextInput(bool enabled,const gfx::Point& caretPos = {}) {
-    (void)enabled; (void)caretPos;
-  }
+  void setTextInput(bool enabled,const gfx::Point& caretPos = {});
   void activate() override { }
   void maximize() override { }
   void minimize() override { }
