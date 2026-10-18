@@ -4,6 +4,18 @@
 #include <limits>
 
 namespace aseandroid {
+RasterViewport rasterViewport(int srcWidth,int srcHeight,
+                              int dstWidth,int dstHeight,int scale) {
+  if(srcWidth<1 || srcHeight<1 || dstWidth<1 || dstHeight<1 ||
+     scale<1 || scale>16) return {};
+  const int64_t sw=int64_t(srcWidth)*scale;
+  const int64_t sh=int64_t(srcHeight)*scale;
+  const int64_t padX=std::max<int64_t>(0,(int64_t(dstWidth)-sw)/2);
+  const int64_t padY=std::max<int64_t>(0,(int64_t(dstHeight)-sh)/2);
+  return {static_cast<int>(padX),static_cast<int>(padY),
+          static_cast<int>(std::min<int64_t>(sw,dstWidth)),
+          static_cast<int>(std::min<int64_t>(sh,dstHeight))};
+}
 bool blitNearest(const ReadPixels& src, const WritePixels& dst,
                  int scale, DirtyRect dirty) {
   if (!src.bytes || !dst.bytes || src.width < 1 || src.height < 1 ||
@@ -22,10 +34,11 @@ bool blitNearest(const ReadPixels& src, const WritePixels& dst,
   // Never smear the outermost GUI pixels across an ultrawide surface.
   // If the window dimensions aren't exact multiples of the UI scale,
   // preserve integer pixels and use opaque neutral bars for the remainder.
+  const auto viewport = rasterViewport(src.width,src.height,dst.width,dst.height,scale);
   const int64_t scaledW = int64_t(src.width) * scale;
   const int64_t scaledH = int64_t(src.height) * scale;
-  const int64_t offsetX = std::max<int64_t>(0, (int64_t(dst.width)-scaledW)/2);
-  const int64_t offsetY = std::max<int64_t>(0, (int64_t(dst.height)-scaledH)/2);
+  const int64_t offsetX = viewport.x;
+  const int64_t offsetY = viewport.y;
   const bool bgra = (src.order == PixelOrder::BGRA);
   for (int64_t y=top; y<bottom; ++y) {
     auto* out = dst.bytes + y*dst.rowBytes;
