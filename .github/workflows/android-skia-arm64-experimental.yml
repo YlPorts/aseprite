@@ -43,6 +43,36 @@ jobs:
           test -d "$NDK"
           ARGS="is_debug=false is_official_build=false target_os=\"android\" target_cpu=\"arm64\" ndk=\"$NDK\" ndk_api=26 skia_enable_gpu=false skia_enable_graphite=false skia_use_gl=false skia_use_system_expat=false skia_use_system_icu=false skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_libwebp=false skia_use_system_zlib=false skia_use_freetype=true skia_use_harfbuzz=true skia_use_system_freetype2=false skia_use_system_harfbuzz=false"
           bin/gn gen out/Release-Android-arm64 --args="$ARGS"
+          grep -Eq '^target_os = "android"
+      - name: Build genuine Skia and modules static libraries
+        working-directory: build/skia
+        run: |
+          ninja -C out/Release-Android-arm64 -j 2 skia modules
+      - name: Verify renderer library presence and never publish Aseprite
+        run: |
+          LIB=build/skia/out/Release-Android-arm64
+          test -s "$LIB/libskia.a"
+          test -s "$LIB/libskshaper.a"
+          test -s "$LIB/libskunicode.a"
+          "$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" t "$LIB/libskia.a" > build/skia/arm64-objects.txt
+          sed -n '1,12p' build/skia/arm64-objects.txt
+          echo 'Standalone Skia libraries only; NO Aseprite build or APK.'
+ out/Release-Android-arm64/args.gn
+          grep -Eq '^target_cpu = "arm64"
+      - name: Build genuine Skia and modules static libraries
+        working-directory: build/skia
+        run: |
+          ninja -C out/Release-Android-arm64 -j 2 skia modules
+      - name: Verify renderer library presence and never publish Aseprite
+        run: |
+          LIB=build/skia/out/Release-Android-arm64
+          test -s "$LIB/libskia.a"
+          test -s "$LIB/libskshaper.a"
+          test -s "$LIB/libskunicode.a"
+          "$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" t "$LIB/libskia.a" > build/skia/arm64-objects.txt
+          sed -n '1,12p' build/skia/arm64-objects.txt
+          echo 'Standalone Skia libraries only; NO Aseprite build or APK.'
+ out/Release-Android-arm64/args.gn
       - name: Build genuine Skia and modules static libraries
         working-directory: build/skia
         run: |
