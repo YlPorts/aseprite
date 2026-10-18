@@ -12,7 +12,7 @@ public:
   void setMousePosition(const gfx::Point& point) override {
     androidSetPointerPosition(point.x,point.y);
   }
-  ScreenRef primaryScreen() override { return make_ref<ScreenAndroid>(); }
+  ScreenRef primaryScreen() override { return androidPrimaryScreen(); }
   void listScreens(ScreenList& screens) override { screens.push_back(primaryScreen()); }
 };
 } // namespace os
