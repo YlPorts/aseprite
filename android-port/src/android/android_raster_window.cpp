@@ -1,6 +1,7 @@
 #include "android_raster_window.h"
 #ifdef __ANDROID__
 #include <android/native_window.h>
+#include <limits>
 namespace aseandroid {
 AndroidRasterWindow::~AndroidRasterWindow(){setSurface(nullptr);}
 AndroidRasterWindow& globalRasterWindow(){static AndroidRasterWindow surface;return surface;}
@@ -33,7 +34,12 @@ bool AndroidRasterWindow::present(const ReadPixels& pixels,int uiScale) {
   if (!surface_ || uiScale<1 || uiScale>16) return false;
   ANativeWindow_Buffer buffer{};
   if (ANativeWindow_lock(surface_,&buffer,nullptr)<0) return false;
-  const bool ok=(buffer.format==WINDOW_FORMAT_RGBA_8888) &&
+  // The Android buffer stride is in pixels, not bytes. Validate it
+  // before multiplying to prevent overflow or writing past a row.
+  const bool layoutOK=buffer.bits && buffer.width>0 && buffer.height>0 &&
+    buffer.stride>=buffer.width &&
+    buffer.stride<=std::numeric_limits<int>::max()/4;
+  const bool ok=layoutOK && (buffer.format==WINDOW_FORMAT_RGBA_8888) &&
     blitNearest(pixels,{static_cast<uint8_t*>(buffer.bits),buffer.width,
                           buffer.height,buffer.stride*4},uiScale,
                  {0,0,buffer.width,buffer.height});
