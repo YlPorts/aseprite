@@ -9,7 +9,7 @@ LIBS="${ASEPRITE_ANDROID_SKIA_LIBS:-$SKIA/out/Release-Android-arm64}"
 GEN_BUILD="$ROOT/build/aseprite-hostgen-android"
 ANDROID_BUILD="$ROOT/build/aseprite-gui-android-arm64"
 cd "$ROOT"
-if [[ ! -f laf/os/CMakeLists.txt || ! -f laf/clip/CMakeLists.txt ]]; then
+if [[ ! -f laf/os/CMakeLists.txt || ! -f laf/base/CMakeLists.txt ]]; then
   echo "ERROR: original pinned LAF submodules missing; git submodule update --init --recursive" >&2
   exit 2
 fi
