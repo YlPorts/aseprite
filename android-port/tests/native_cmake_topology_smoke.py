@@ -57,6 +57,8 @@ endif()
             raise RuntimeError('Original shared JNI target was not generated')
         if 'aseprite-android-touch' not in output:
             raise RuntimeError('Android native touch target was not generated')
+        if '-Wl,--no-undefined' not in output:
+            raise RuntimeError('Original Android JNI linker must reject unresolved symbols')
         # Removing original laf-os must fail closed; no replacement GUI.
         original_cmake = (source / 'CMakeLists.txt').read_text()
         (source / 'CMakeLists.txt').write_text(
