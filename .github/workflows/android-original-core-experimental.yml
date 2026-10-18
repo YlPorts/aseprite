@@ -1,0 +1,66 @@
+name: Android experimental original Aseprite core (NO APK)
+on:
+  push:
+    branches: [android-native-port-wip]
+    paths:
+      - 'android-port/scripts/patch-laf-headless-android.py'
+      - '.github/workflows/android-original-core-experimental.yml'
+  workflow_dispatch:
+
+jobs:
+  cross-compile-original-core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out authentic source and pinned git submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+      - name: Linux native build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang cmake ninja-build python3 \
+            libx11-dev libxcursor-dev libxi-dev libxrandr-dev libgl1-mesa-dev \
+            libfontconfig1-dev
+      - uses: android-actions/setup-android@v3
+      - name: Install Android NDK
+        run: sdkmanager 'ndk;27.2.12479018'
+      - name: Ensure LAF Android headless patch is applicable
+        run: |
+          python3 android-port/scripts/patch-laf-headless-android.py . --dry-run
+          python3 android-port/scripts/patch-laf-headless-android.py .
+      - name: Build original Aseprite generator on Ubuntu host
+        run: |
+          cmake -S . -B build/aseprite-hostgen -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DENABLE_ASEPRITE_EXE=OFF \
+            -DENABLE_NEWS=OFF -DENABLE_UPDATER=OFF \
+            -DENABLE_SCRIPTING=OFF -DENABLE_WEBSOCKET=OFF \
+            -DENABLE_WEBP=OFF -DENABLE_TESTS=OFF \
+            -DLAF_BACKEND=none -DLAF_WITH_EXAMPLES=OFF -DLAF_WITH_TESTS=OFF
+          cmake --build build/aseprite-hostgen --target gen -j 2
+          test -x build/aseprite-hostgen/bin/gen
+      - name: Configure real original libraries for ARM64
+        run: |
+          cmake -S . -B build/aseprite-arm64-original -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/27.2.12479018/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DENABLE_ASEPRITE_EXE=OFF \
+            -DENABLE_NEWS=OFF -DENABLE_UPDATER=OFF \
+            -DENABLE_SCRIPTING=OFF -DENABLE_WEBSOCKET=OFF \
+            -DENABLE_WEBP=OFF -DENABLE_TESTS=OFF \
+            -DLAF_BACKEND=none -DLAF_WITH_EXAMPLES=OFF \
+            -DLAF_WITH_TESTS=OFF -DLAF_WITH_CLIP=OFF \
+            -DGEN_EXE="$GITHUB_WORKSPACE/build/aseprite-hostgen/bin/gen"
+      - name: Cross-compile original document/render/file-format modules
+        run: |
+          cmake --build build/aseprite-arm64-original \
+            --target doc-lib render-lib dio-lib -j 2
+          echo 'Original Aseprite modules compiled; NOT a functional Android editor.'
+      - name: Record and enforce no generated APK
+        if: always()
+        run: |
+          test -z "$(find build -type f -name '*.apk' -print -quit)"
+          echo 'No Aseprite APK is built or distributed by this workflow.'
