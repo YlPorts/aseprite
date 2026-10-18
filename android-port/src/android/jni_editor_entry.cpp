@@ -118,6 +118,9 @@ Java_com_ylports_aseprite_AsepriteActivity_nativeTouch(
     else if(type[i]==3) tool=aseandroid::Tool::Mouse;
     frame.contacts.push_back({id[i],point[i*2],point[i*2+1],press[i],tool});
   }
+  os::androidSetPointerPosition(
+      static_cast<int>(std::lround(point[index*2])),
+      static_cast<int>(std::lround(point[index*2+1])));
   std::lock_guard<std::mutex> lock(touchMutex);
   const auto window=os::androidAcquireWindow();
   if(!window) return;
