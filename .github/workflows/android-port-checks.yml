@@ -38,9 +38,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: android-actions/setup-android@v3
-      - name: Install pinned NDK
-        run: sdkmanager 'ndk;27.2.12479018'
+      - name: Install pinned NDK using runner SDK (no obsolete tools package)
+        run: |
+          command -v sdkmanager
+          sdkmanager --install 'ndk;27.2.12479018'
       - name: Check Android Java host against the real SDK (not an APK)
         run: |
           sdkmanager 'platforms;android-35'
