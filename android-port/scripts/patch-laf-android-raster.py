@@ -45,7 +45,11 @@ def main():
         args.dry_run)
     replace_once(cmake,
         '    message(FATAL_ERROR "Android SkiaWindow backend not implemented: do not build a fake editor")',
-        '    list(APPEND LAF_OS_SOURCES skia/skia_window_android.cpp)',
+        '    # Android window is selected in the Skia sources dispatch below.',
+        args.dry_run)
+    replace_once(cmake,
+        '  elseif(APPLE)\n    list(APPEND LAF_OS_SOURCES\n      skia/skia_window_osx.mm)\n  else()\n    list(APPEND LAF_OS_SOURCES\n      skia/skia_window_x11.cpp)',
+        '  elseif(APPLE)\n    list(APPEND LAF_OS_SOURCES\n      skia/skia_window_osx.mm)\n  elseif(ANDROID)\n    list(APPEND LAF_OS_SOURCES\n      skia/skia_window_android.cpp)\n  else()\n    list(APPEND LAF_OS_SOURCES\n      skia/skia_window_x11.cpp)',
         args.dry_run)
     replace_once(cmake,
         '  list(APPEND LAF_OS_PLATFORM_LIBS ${CMAKE_THREAD_LIBS_INIT})\nelseif(WIN32)',
