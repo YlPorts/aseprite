@@ -63,6 +63,7 @@ def snapshot(destination):
 def verify(source_root):
     cmake = (source_root / "laf/os/CMakeLists.txt").read_text()
     skia = (source_root / "laf/os/skia/skia_system.h").read_text()
+    cmake_skia = (source_root / "laf/cmake/FindSkia.cmake").read_text()
     surface = (source_root / "laf/os/skia/skia_surface.cpp").read_text()
     main = (source_root / "laf/os/skia/skia_window.cpp").read_text()
     engine = (source_root / "CMakeLists.txt").read_text()
@@ -75,6 +76,8 @@ def verify(source_root):
                 "      skia/skia_window_x11.cpp)")
     assert fragment in cmake, "Android would select Linux/X11 renderer"
     assert "android/window_registry.cpp android/key_state.cpp" in cmake
+    assert "SK_SUPPORT_GPU=$<IF:$<BOOL:${ANDROID}>,0,1>" in cmake_skia
+    assert "NOT APPLE AND NOT ANDROID AND EXISTS" in cmake_skia
     assert "androidUnregisterWindow(nullptr);" in skia
     assert "#if SK_SUPPORT_GPU\n  // The SkSurface_Raster" in surface
     assert "#endif\n\n  return nullptr;" in surface
