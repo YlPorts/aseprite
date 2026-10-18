@@ -3,7 +3,7 @@
       android:extractNativeLibs="true" android:usesCleartextTraffic="false">
     <activity android:name="com.ylports.aseprite.AsepriteActivity"
       android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|density|uiMode"
-      android:screenOrientation="sensorLandscape" android:exported="true">
+      android:screenOrientation="landscape" android:exported="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
