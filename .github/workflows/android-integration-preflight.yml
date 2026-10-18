@@ -57,5 +57,10 @@ jobs:
           c++ -std=c++17 -Wall -Wextra -Werror \
             -I laf -c laf/os/android/key_state.cpp \
             -o build/laf-android-preflight/key_state.o
+          c++ -std=c++17 -Wall -Wextra -Werror -pthread \
+            -I laf android-port/tests/android_key_state_test.cpp \
+            build/laf-android-preflight/key_state.o \
+            -o build/laf-android-preflight/android_key_state_test
+          build/laf-android-preflight/android_key_state_test
       - name: Explicit unfinished-runtime notice
         run: echo "Platform overlays verified. This is NOT a compiled/working Aseprite Android APK."
