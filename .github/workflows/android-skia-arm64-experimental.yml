@@ -6,6 +6,9 @@ on:
     paths:
       - '.github/workflows/android-skia-arm64-experimental.yml'
       - 'android-port/scripts/try-build-original-editor-arm64.sh'
+      - 'android-port/native-app/**'
+      - 'android-port/platform/laf/**'
+      - 'android-port/src/android/**'
       - 'android-port/scripts/patch-laf-android-raster.py'
       - 'android-port/scripts/patch-laf-android-runtime.py'
       - 'android-port/docs/BUILD_ANDROID.md'
