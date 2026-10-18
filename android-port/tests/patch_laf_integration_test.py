@@ -28,6 +28,7 @@ ORIGINAL_FILES = [
     "laf/os/common/event_queue.cpp",
     "laf/os/skia/skia_window.h",
     "laf/os/skia/skia_window.cpp",
+    "laf/os/skia/skia_surface.cpp",
     "laf/os/skia/skia_system.h",
     "laf/cmake/FindSkia.cmake",
 ]
@@ -62,6 +63,7 @@ def snapshot(destination):
 def verify(source_root):
     cmake = (source_root / "laf/os/CMakeLists.txt").read_text()
     skia = (source_root / "laf/os/skia/skia_system.h").read_text()
+    surface = (source_root / "laf/os/skia/skia_surface.cpp").read_text()
     main = (source_root / "laf/os/skia/skia_window.cpp").read_text()
     engine = (source_root / "CMakeLists.txt").read_text()
     source = (source_root / "src/app/resource_finder.cpp").read_text()
@@ -74,6 +76,8 @@ def verify(source_root):
     assert fragment in cmake, "Android would select Linux/X11 renderer"
     assert "android/window_registry.cpp android/key_state.cpp" in cmake
     assert "androidUnregisterWindow(nullptr);" in skia
+    assert "#if SK_SUPPORT_GPU\n  // The SkSurface_Raster" in surface
+    assert "#endif\n\n  return nullptr;" in surface
     assert "Capabilities::MultipleWindows" in skia
     assert "#if LAF_ANDROID" in skia
     assert "androidRegisterWindow(AddRef(this));" in main
