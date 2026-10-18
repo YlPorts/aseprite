@@ -1,7 +1,9 @@
 # Aseprite — experimental native Android port
 
 This directory contains Android platform code for the **original C++ Aseprite**.
-It is NOT a replacement editor, a WebView, or a runnable APK.
+It is NOT a replacement editor, a WebView, or a runnable APK. The original
+editor Java/JNI host and Aseprite app_main() linker target are now present,
+but they are **not validated as a working Android application**.
 
 ## Verified locally
 
@@ -34,8 +36,10 @@ build a complete APK.
 The platform adapter targets genuine `os::Event` and `os::EventQueue`.
 The fail-closed source patch is in `scripts/patch-laf-headless-android.py`.
 It adds a headless Android event queue to a checkout of the original LAF
-submodule. `SystemAndroid`, `WindowAndroid`, and the Skia Android renderer
-are not yet implemented.
+submodule. Additional guarded patch scripts add experimental native Android
+`WindowAndroid`, `SystemAndroid`, Skia raster presenter, Java Activity,
+and original `app_main()` JNI entry. **These sources have not yet passed a
+complete Skia+app-lib Android build.** See `docs/BUILD_ANDROID.md`.
 
 ## License and repository visibility
 
