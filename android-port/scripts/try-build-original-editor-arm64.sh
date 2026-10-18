@@ -95,7 +95,7 @@ do
     exit 3
   fi
 done
-if "$READELF" -d "$OUTPUT" | grep -q 'Shared library: \\[libc++_shared.so\\]'; then
+if "$READELF" -d "$OUTPUT" | grep -Fq 'Shared library: [libc++_shared.so]'; then
   echo "ERROR: editor unexpectedly depends on libc++_shared.so; use -DANDROID_STL=c++_static or package the runtime" >&2
   exit 3
 fi
