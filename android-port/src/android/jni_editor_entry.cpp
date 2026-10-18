@@ -53,8 +53,19 @@ Java_com_ylports_aseprite_AsepriteActivity_nativeAttachSurface(
   ANativeWindow* native=surface?ANativeWindow_fromSurface(env,surface):nullptr;
   aseandroid::globalRasterWindow().setSurface(native);
   if(native) ANativeWindow_release(native);
-  // Send resize through the genuine Aseprite/LAF UI thread.
+  // SurfaceView may be destroyed without onPause (resize/recreation).
+  // End active strokes before the buffer disappears so the original editor
+  // never remains in a mouse-down/space-pan state after restoration.
   auto window=os::androidAcquireWindow();
+  if(!native && originalEditorStarted.load(std::memory_order_acquire)) {
+    std::lock_guard<std::mutex> lock(touchMutex);
+    aseandroid::Frame cancel{};
+    cancel.action=aseandroid::Action::Cancel;
+    auto gestures=touchRouter.process(cancel);
+    if(window) aseandroid::postToLaf(gestures,window);
+    os::androidClearPressedKeys();
+  }
+  // Send resize through the genuine Aseprite/LAF UI thread.
   if(window && native) {
     os::Event event;
     event.setType(os::Event::Callback);
