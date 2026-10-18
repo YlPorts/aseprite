@@ -8,6 +8,10 @@ class SystemAndroid : public CommonSystem {
 public:
   bool isKeyPressed(KeyScancode code) override { return androidIsKeyPressed(code); }
   void resetKeyPressed() override { androidClearPressedKeys(); }
+  gfx::Point mousePosition() const override { return androidPointerPosition(); }
+  void setMousePosition(const gfx::Point& point) override {
+    androidSetPointerPosition(point.x,point.y);
+  }
   ScreenRef primaryScreen() override { return make_ref<ScreenAndroid>(); }
   void listScreens(ScreenList& screens) override { screens.push_back(primaryScreen()); }
 };
