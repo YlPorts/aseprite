@@ -1,0 +1,50 @@
+name: Android original editor integration preflight (NO APK)
+on:
+  workflow_dispatch:
+  push:
+    branches: [android-native-port-wip]
+    paths:
+      - 'android-port/**'
+      - '.github/workflows/android-integration-preflight.yml'
+
+jobs:
+  original-laf-platform-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+      - name: Validate patch syntax and required original sources
+        run: |
+          python3 -m py_compile android-port/scripts/patch-laf-headless-android.py \
+            android-port/scripts/patch-laf-android-raster.py \
+            android-port/scripts/patch-laf-android-runtime.py \
+            android-port/scripts/patch-aseprite-android-engine.py
+          test -f laf/os/skia/skia_window.cpp
+          test -f src/main/main.cpp
+          test -f src/app/resource_finder.cpp
+          test -f android-port/native-app/CMakeLists.txt
+      - name: Apply native Android overlay to original source checkout
+        run: |
+          python3 android-port/scripts/patch-laf-headless-android.py .
+          python3 android-port/scripts/patch-laf-android-raster.py .
+          python3 android-port/scripts/patch-laf-android-runtime.py .
+          python3 android-port/scripts/patch-aseprite-android-engine.py .
+      - name: Verify overlays are reproducible and non-destructive
+        run: |
+          python3 android-port/scripts/patch-laf-headless-android.py .
+          python3 android-port/scripts/patch-laf-android-raster.py .
+          python3 android-port/scripts/patch-laf-android-runtime.py .
+          python3 android-port/scripts/patch-aseprite-android-engine.py .
+          grep -q 'SkiaWindowAndroid' laf/os/skia/skia_window.h
+          grep -q 'SystemAndroid' laf/os/skia/skia_system.h
+          grep -q 'androidRegisterWindow' laf/os/skia/skia_window.cpp
+          grep -q 'ASEPRITE_ANDROID_DATA_DIR' src/app/resource_finder.cpp
+          grep -q 'android-port/native-app' CMakeLists.txt
+          test -f android-port/app/src/main/java/com/ylports/aseprite/AsepriteActivity.java
+          test -f android-port/src/android/jni_editor_entry.cpp
+          test -z "$(find . -path './.git' -prune -o -type f -name '*.apk' -print -quit)"
+      - name: Explicit unfinished-runtime notice
+        run: echo "Platform overlays verified. This is NOT a compiled/working Aseprite Android APK."
