@@ -20,6 +20,8 @@ jobs:
             android-port/scripts/patch-laf-android-runtime.py \
             android-port/scripts/patch-aseprite-android-engine.py
           python3 android-port/tests/verify_android_bootstrap_contract.py
+      - name: Validate original Android editor JNI CMake topology
+        run: python3 android-port/tests/native_cmake_topology_smoke.py
       - name: Compile and test native C++ input
         run: |
           sudo apt-get update
