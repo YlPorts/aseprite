@@ -122,3 +122,27 @@ Aseprite EULA restricts modifying and building source to personal use or
 contributions, and prohibits distributing binaries. This fork is PUBLIC.
 No compiled Aseprite binary should be published here. For private CI
 artifacts, use a separate private repository (not a public GitHub fork).
+
+## October 18 — original engine integration hardening
+
+- Corrected Skia Android renderer: `SkiaSurface::bitmap()` is non-const in
+  the pinned LAF interface; the renderer now calls it on a mutable surface
+  and checks row-stride bounds.
+- Converted physical Android motion positions to original **LAF logical
+  coordinates** using `Window::scale()`, matching X11/Windows event behavior
+  for non-1x editor UI scale.
+- GitHub CI now attempts NDK ARM64 syntax compilation of JNI and **nine**
+  Android/LAF adapter translation units before the full Skia linkage.
+- Original-editor ARM64 build script builds host `gen` with clipboard optional
+  and validates output ELF machine `AArch64` before claiming native success.
+- Added `stage-authentic-android-assets.py` to prepare original `data/`
+  assets only alongside a real AArch64 ELF library exposing the expected JNI
+  boot entrypoint. It does **not** package or publish an APK.
+- Added regression checks for malformed ELF / wrong CPU / absent JNI,
+  wired into integration-preflight Actions. **New CI results not confirmed.**
+- Existing standalone host unit suite still passes **3/3** locally.
+
+This is real source work, not a fully linked or device-tested original
+Aseprite editor. Full Skia ARM64/linker errors remain to resolve once a
+CI run completes and its logs are inspected.
+
