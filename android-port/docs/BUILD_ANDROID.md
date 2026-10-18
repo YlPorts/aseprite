@@ -42,8 +42,11 @@ The exact Skia branch required by Aseprite is `aseprite-m124`. This port uses
 its software raster backend first, not EGL/Vulkan acceleration. The experimental
 workflow [android-skia-arm64-experimental.yml](../../.github/workflows/android-skia-arm64-experimental.yml)
 now tries to build genuine `libskia.a`, `libskshaper.a`, and `libskunicode.a`
-for Android ARM64, with the installed NDK and GN. It does **not** compile
-Aseprite itself, publish an APK, or establish a working editor.
+for Android ARM64, with the installed NDK and GN. After those libraries,
+its experimental final step attempts to link the **original Aseprite** editor
+into `libaseprite.so` using `scripts/try-build-original-editor-arm64.sh`.
+No passing end-to-end run has been confirmed. The workflow does **not**
+upload or distribute an APK or library.
 
 Do not reuse precompiled Linux x86_64 Skia libraries for Android. The Android
 Skia build must produce compatible ARM64 libraries and headers before GUI
@@ -93,3 +96,19 @@ public fork. The code has **not** been tested on Galaxy A15 yet.
 - Original `SkiaSystem::setTextInput()` can call an Android-window method,
   though a complete soft-keyboard/IME adapter is still missing.
 - The original JNI shared target links the raster code once, not twice.
+
+## Attempt the original JNI editor library in one GitHub job
+
+Run `Build Skia and attempt original Aseprite Android ARM64 (experimental)`
+under GitHub Actions on the `android-native-port-wip` branch. The job:
+
+1. Builds Skia m124 as Android ARM64 software raster, and validates GN target OS/CPU.
+2. Applies the original-source Android LAF overlays, checking idempotence.
+3. Compiles the original `gen` utility for the Ubuntu host.
+4. Cross-configures and links the original Aseprite `app_main()`, `app-lib`,
+   `laf-os`, `doc-lib`, `render-lib`, and format modules into `libaseprite.so`.
+5. Refuses to report success without a real nonempty shared library.
+
+**This is a compilation attempt**, not a demonstrated working port. The CMake
+configuration or build may expose additional portability errors. No APK is
+created. Keep Aseprite binaries private for personal use under the EULA.
