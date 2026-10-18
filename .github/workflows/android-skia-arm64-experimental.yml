@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/android-skia-arm64-experimental.yml'
       - 'android-port/scripts/try-build-original-editor-arm64.sh'
+      - 'android-port/scripts/audit-original-skia-arm64.sh'
       - 'android-port/native-app/**'
       - 'android-port/platform/laf/**'
       - 'android-port/src/android/**'
@@ -72,14 +73,11 @@ jobs:
           # Avoid unrelated skottie, SVG and paragraph modules. The original
           # Aseprite LAF FindSkia only links these three GN libraries.
           ninja -C out/Release-Android-arm64 -j 2 skia skshaper skunicode
-      - name: Verify original Skia output without uploading binaries
+      - name: Verify real Android ARM64 Skia and dependency archives (NO APK)
         run: |
-          LIB="$GITHUB_WORKSPACE/build/skia/out/Release-Android-arm64"
-          test -s "$LIB/libskia.a"
-          test -s "$LIB/libskshaper.a"
-          test -s "$LIB/libskunicode.a"
-          "$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" t "$LIB/libskia.a" > "$RUNNER_TEMP/skia-members.txt"
-          sed -n '1,12p' "$RUNNER_TEMP/skia-members.txt"
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
+          bash android-port/scripts/audit-original-skia-arm64.sh \
+            "$GITHUB_WORKSPACE/build/skia/out/Release-Android-arm64"
       - name: Attempt authentic original editor JNI library (no APK)
         run: |
           export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
