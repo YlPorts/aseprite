@@ -30,6 +30,9 @@ jobs:
         run: |
           python3 android-port/scripts/patch-laf-headless-android.py . --dry-run
           python3 android-port/scripts/patch-laf-headless-android.py .
+          # This validates that Android raster backend patches fit pinned LAF;
+          # core-only build below deliberately remains headless.
+          python3 android-port/scripts/patch-laf-android-raster.py . --dry-run
       - name: Build original Aseprite generator on Ubuntu host
         run: |
           cmake -S . -B build/aseprite-hostgen -G Ninja \
