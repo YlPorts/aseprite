@@ -46,5 +46,11 @@ jobs:
           test -f android-port/app/src/main/java/com/ylports/aseprite/AsepriteActivity.java
           test -f android-port/src/android/jni_editor_entry.cpp
           test -z "$(find . -path './.git' -prune -o -type f -name '*.apk' -print -quit)"
+      - name: Compile original LAF Android keyboard adapter on host
+        run: |
+          mkdir -p build/laf-android-preflight
+          c++ -std=c++17 -Wall -Wextra -Werror \
+            -I laf -c laf/os/android/key_state.cpp \
+            -o build/laf-android-preflight/key_state.o
       - name: Explicit unfinished-runtime notice
         run: echo "Platform overlays verified. This is NOT a compiled/working Aseprite Android APK."
