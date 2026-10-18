@@ -40,8 +40,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install pinned NDK using runner SDK (no obsolete tools package)
         run: |
-          command -v sdkmanager
-          sdkmanager --install 'ndk;27.2.12479018'
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          test -x "$SDKMANAGER"
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --install 'ndk;27.2.12479018'
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
       - name: Check Android Java host against the real SDK (not an APK)
         run: |
           sdkmanager 'platforms;android-35'
