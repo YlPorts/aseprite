@@ -16,7 +16,7 @@ find "$LIB" -maxdepth 8 -type f -name '*.a' -printf '%P\n' | sort
 for name in libskia.a libskshaper.a libskunicode.a; do
   archive="$LIB/$name"
   test -s "$archive" || { echo "MISSING: $archive" >&2; exit 2; }
-  member="$("$AR" t "$archive" | head -n 1)"
+  member="$("$AR" t "$archive" | sed -n '1p')"
   [[ -n "$member" ]] || { echo "EMPTY ARCHIVE: $archive" >&2; exit 2; }
   # Every essential Skia archive must contain Android ARM64 relocatable
   # objects; file names alone do not prove architecture.
