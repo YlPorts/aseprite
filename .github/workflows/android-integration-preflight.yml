@@ -62,5 +62,30 @@ jobs:
             build/laf-android-preflight/key_state.o \
             -o build/laf-android-preflight/android_key_state_test
           build/laf-android-preflight/android_key_state_test
+      - name: Prepare pinned Android NDK for original platform C++ syntax checks
+        uses: android-actions/setup-android@v3
+      - name: Install NDK 27.2
+        run: sdkmanager 'ndk;27.2.12479018'
+      - name: Cross-compile genuine LAF Android adapters (syntax only, no Skia)
+        run: |
+          CXX="$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang++"
+          test -x "$CXX"
+          for src in \
+            laf/os/android/key_state.cpp \
+            laf/os/android/event_queue.cpp \
+            laf/os/android/window.cpp \
+            laf/os/android/screen.cpp \
+            laf/os/android/window_registry.cpp \
+            android-port/src/android/raster_presenter.cpp \
+            android-port/src/android/android_raster_window.cpp \
+            android-port/src/android/laf_event_bridge.cpp \
+            android-port/src/android/jni_editor_entry.cpp
+          do
+            echo "Checking Android ARM64 syntax: $src"
+            "$CXX" -std=c++17 -fsyntax-only \
+              -DLAF_ANDROID=1 -DLAF_SKIA=0 -DSK_SUPPORT_GPU=0 \
+              -I laf -I src -I android-port/src/android "$src"
+          done
+          echo "No original Skia GUI editor or APK has been linked."
       - name: Explicit unfinished-runtime notice
         run: echo "Platform overlays verified. This is NOT a compiled/working Aseprite Android APK."
