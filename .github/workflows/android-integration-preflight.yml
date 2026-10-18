@@ -74,10 +74,10 @@ jobs:
             build/laf-android-preflight/key_state.o \
             -o build/laf-android-preflight/android_key_state_test
           build/laf-android-preflight/android_key_state_test
-      - name: Prepare pinned Android NDK for original platform C++ syntax checks
-        uses: android-actions/setup-android@v3
-      - name: Install NDK 27.2
-        run: sdkmanager 'ndk;27.2.12479018'
+      - name: Install NDK 27.2 using runner SDK
+        run: |
+          command -v sdkmanager
+          sdkmanager --install 'ndk;27.2.12479018'
       - name: Cross-compile genuine LAF Android adapters (syntax only, no Skia)
         run: |
           CXX="$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang++"
