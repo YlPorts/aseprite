@@ -42,7 +42,7 @@ public:
   NativeCursor nativeCursor() override { return m_cursor; }
   bool setCursor(NativeCursor cursor) override { m_cursor=cursor; return true; }
   bool setCursor(const CursorRef& cursor) override { (void)cursor; return false; }
-  void setMousePosition(const gfx::Point& position) override { (void)position; }
+  void setMousePosition(const gfx::Point& position) override;
   void captureMouse() override { }
   void releaseMouse() override { }
   void performWindowAction(WindowAction action, const Event* event) override {
