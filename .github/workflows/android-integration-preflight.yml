@@ -26,6 +26,9 @@ jobs:
           test -f src/main/main.cpp
           test -f src/app/resource_finder.cpp
           test -f android-port/native-app/CMakeLists.txt
+      - name: Unit-test pinned upstream LAF overlay, re-entry and dry-run
+        run: |
+          python3 android-port/tests/patch_laf_integration_test.py
       - name: Apply native Android overlay to original source checkout
         run: |
           python3 android-port/scripts/patch-laf-headless-android.py .
@@ -39,6 +42,8 @@ jobs:
           python3 android-port/scripts/patch-laf-android-runtime.py .
           python3 android-port/scripts/patch-aseprite-android-engine.py .
           grep -q 'SkiaWindowAndroid' laf/os/skia/skia_window.h
+          grep -q 'skia/skia_window_android.cpp' laf/os/CMakeLists.txt
+          grep -q 'androidUnregisterWindow(nullptr)' laf/os/skia/skia_system.h
           grep -q 'SystemAndroid' laf/os/skia/skia_system.h
           grep -q 'androidRegisterWindow' laf/os/skia/skia_window.cpp
           grep -q 'ASEPRITE_ANDROID_DATA_DIR' src/app/resource_finder.cpp
