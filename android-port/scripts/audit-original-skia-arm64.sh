@@ -3,8 +3,8 @@
 set -euo pipefail
 LIB="${1:?usage: audit-original-skia-arm64.sh /path/to/Skia/out/Release-Android-arm64}"
 NDK="${ANDROID_NDK_HOME:-${ANDROID_NDK_ROOT:-${ANDROID_HOME:-}/ndk/27.2.12479018}}"
-READELF="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
-AR="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+READELF="${ASEPRITE_READELF:-$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf}"
+AR="${ASEPRITE_AR:-$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar}"
 test -f "$LIB/args.gn"
 test -x "$READELF"
 test -x "$AR"
@@ -20,10 +20,18 @@ for name in libskia.a libskshaper.a libskunicode.a; do
   [[ -n "$member" ]] || { echo "EMPTY ARCHIVE: $archive" >&2; exit 2; }
   # Every essential Skia archive must contain Android ARM64 relocatable
   # objects; file names alone do not prove architecture.
-  header="$("$AR" p "$archive" "$member" | "$READELF" -h - 2>&1)" || {
+  object="$(mktemp)"
+  if ! "$AR" p "$archive" "$member" > "$object"; then
+    rm -f "$object"
+    echo "CANNOT EXTRACT $archive/$member" >&2
+    exit 2
+  fi
+  header="$("$READELF" -h "$object" 2>&1)" || {
+    rm -f "$object"
     echo "CANNOT INSPECT $archive/$member" >&2
     exit 2
   }
+  rm -f "$object"
   grep -q 'Machine:.*AArch64' <<< "$header" || {
     echo "WRONG ARCH: $archive member $member" >&2
     exit 2
