@@ -27,6 +27,7 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
     private static native void nativeTouch(int action,int pointerIndex,int[] ids,
                                             float[] xy,float[] pressure,int[] tools);
     private static native void nativeKey(int action,int keyCode,int unicode,int modifiers);
+    private static native void nativeAppFocus(boolean focused);
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -132,8 +133,13 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
         }
         return super.dispatchKeyEvent(event);
     }
+    @Override protected void onPause(){
+        nativeAppFocus(false);
+        super.onPause();
+    }
     @Override protected void onResume(){
         super.onResume();
+        nativeAppFocus(true);
         getWindow().getDecorView().setSystemUiVisibility(IMMERSIVE);
     }
 }
