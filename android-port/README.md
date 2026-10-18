@@ -25,16 +25,25 @@ cmake -S android-port -B build/aseprite-android-arm64 -G Ninja \
 cmake --build build/aseprite-android-arm64 --target aseprite-android-touch
 ```
 
-The GitHub Actions workflow validates the native module, not a complete APK.
+The GitHub Actions workflow **attempts to validate** the native module.
+Do not report ARM64 success until its run has been inspected. It does not
+build a complete APK.
 
 ## Original LAF integration
 
 The platform adapter targets genuine `os::Event` and `os::EventQueue`.
-An idempotent source patch is in `scripts/patch-laf-headless-android.py`.
-It adds a **headless** Android event queue to the LAF submodule. The
-original `WindowAndroid` and Skia renderer still need to be implemented.
+The fail-closed source patch is in `scripts/patch-laf-headless-android.py`.
+It adds a headless Android event queue to a checkout of the original LAF
+submodule. `SystemAndroid`, `WindowAndroid`, and the Skia Android renderer
+are not yet implemented.
 
-**Do not label this a complete port or publish Android Aseprite binaries.**
-The containing fork is currently public; switch it to private in GitHub
-Settings → General → Danger Zone → Change repository visibility before
-any private builds/artifacts.
+## License and repository visibility
+
+Aseprite's EULA restricts compiled copies to personal use or contributions
+and prohibits distributing the application. Do not publish Aseprite APKs.
+This fork is currently **public**. GitHub does not allow a public fork's
+visibility to be changed independently. For private development, create a
+separate private repository (not a GitHub fork), migrate this work into it,
+and restrict CI artifacts to that private repository.
+
+This branch includes platform source and tests only; it publishes no APK.
