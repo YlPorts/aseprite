@@ -9,9 +9,9 @@ from pathlib import Path
 import argparse
 import shutil
 
-def replace_once(path, old, new, dry):
+def replace_once(path, old, new, dry, accepted_later=None):
     text = path.read_text(encoding="utf-8")
-    if new in text:
+    if new in text or (accepted_later and accepted_later in text):
         print("Already patched:", path)
         return
     if text.count(old) != 1:
@@ -61,15 +61,18 @@ def main():
     replace_once(p,
         'if(WIN32)\n  list(APPEND LAF_OS_SOURCES\n    win/color_space.cpp',
         'if(ANDROID)\n  list(APPEND LAF_OS_SOURCES android/event_queue.cpp)\nelseif(WIN32)\n  list(APPEND LAF_OS_SOURCES\n    win/color_space.cpp',
-        args.dry_run)
+        args.dry_run,
+        accepted_later='if(ANDROID)\n  list(APPEND LAF_OS_SOURCES android/event_queue.cpp ')
     replace_once(p,
         'if(LAF_BACKEND STREQUAL "skia")\n  if(APPLE)',
         'if(LAF_BACKEND STREQUAL "skia")\n  if(ANDROID)\n    message(FATAL_ERROR "Android SkiaWindow backend not implemented: do not build a fake editor")\n  endif()\n  if(APPLE)',
-        args.dry_run)
+        args.dry_run,
+        accepted_later='# Android window is selected in the Skia sources dispatch below.')
     replace_once(p,
         "set(LAF_OS_PLATFORM_LIBS)\nif(WIN32)",
         "set(LAF_OS_PLATFORM_LIBS)\nif(ANDROID)\n  find_package(Threads REQUIRED)\n  list(APPEND LAF_OS_PLATFORM_LIBS ${CMAKE_THREAD_LIBS_INIT})\nelseif(WIN32)",
-        args.dry_run)
+        args.dry_run,
+        accepted_later="list(APPEND LAF_OS_PLATFORM_LIBS ${CMAKE_THREAD_LIBS_INIT} android log)")
     original = own / "platform/laf/os/android"
     for name in ("event_queue.h", "event_queue.cpp"):
         copy_checked(original / name, laf / "os/android" / name, args.dry_run)
