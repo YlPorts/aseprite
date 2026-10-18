@@ -30,7 +30,7 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         getWindow().getDecorView().setSystemUiVisibility(IMMERSIVE);
         canvas=new SurfaceView(this);
         canvas.getHolder().addCallback(this);
@@ -70,6 +70,11 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
     }
     private void maybeStartEngine(){
         if (assetsReady && !nativeStarted && canvas.getHolder().getSurface().isValid()) {
+            File userDir=new File(getFilesDir(),"user");
+            if (!userDir.isDirectory() && !userDir.mkdirs()) {
+                android.util.Log.e("AsepriteAndroid","Cannot create private Aseprite user directory");
+                return;
+            }
             nativeStartOriginalEditor(getFilesDir().getAbsolutePath());
             nativeStarted=true;
         }
