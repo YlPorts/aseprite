@@ -8,6 +8,19 @@ std::array<std::atomic_bool,static_cast<int>(kKeyScancodes)>& pressedKeys() {
   return keys;
 }
 }
+namespace {
+std::atomic<int> pointerX{0};
+std::atomic<int> pointerY{0};
+}
+void androidSetPointerPosition(int x,int y) {
+  pointerX.store(x,std::memory_order_relaxed);
+  pointerY.store(y,std::memory_order_release);
+}
+gfx::Point androidPointerPosition() {
+  const int y=pointerY.load(std::memory_order_acquire);
+  const int x=pointerX.load(std::memory_order_relaxed);
+  return gfx::Point(x,y);
+}
 void androidSetKeyPressed(KeyScancode code,bool pressed) {
   if (code>kKeyNil && code<kKeyScancodes)
     pressedKeys()[static_cast<int>(code)].store(pressed,std::memory_order_release);
