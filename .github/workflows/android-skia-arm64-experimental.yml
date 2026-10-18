@@ -93,6 +93,10 @@ jobs:
             {
               echo '### Android ARM64 original editor: compilation failed'
               echo 'The build failed before any complete Aseprite APK was produced.'
+              echo '#### Last completed original engine build stages'
+              echo '```text'
+              grep 'ASEPRITE_ANDROID_STAGE:' "$RUNNER_TEMP/aseprite-arm64-build.log" | tail -8 || true
+              echo '```'
               echo '#### First compiler/configuration errors'
               echo '```text'
               grep -Em 15 'CMake Error|error:|undefined reference|FAILED:|FATAL_ERROR|not found|No such file' "$RUNNER_TEMP/aseprite-arm64-build.log" || true
