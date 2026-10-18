@@ -48,29 +48,29 @@ def main():
     skiasys=laf/'os/skia/skia_system.h'
     update(skiasys,
         '#include "os/skia/skia_window.h"',
-        '#include "os/skia/skia_window.h"\\n'
-        '#if LAF_ANDROID\\n  #include "os/android/window_registry.h"\\n#endif',
+        '#include "os/skia/skia_window.h"\n'
+        '#if LAF_ANDROID\n  #include "os/android/window_registry.h"\n#endif',
         a.dry_run)
     update(skiasys,
         '~SkiaSystem() { destroyInstance(); }',
-        '~SkiaSystem() {\\n'
-        '#if LAF_ANDROID\\n'
-        '    androidUnregisterWindow(nullptr);\\n'
-        '#endif\\n'
-        '    destroyInstance();\\n'
+        '~SkiaSystem() {\n'
+        '#if LAF_ANDROID\n'
+        '    androidUnregisterWindow(nullptr);\n'
+        '#endif\n'
+        '    destroyInstance();\n'
         '  }',
         a.dry_run)
     update(skiasys,
         '    return Capabilities(int(Capabilities::MultipleWindows) | int(Capabilities::CanResizeWindow) |',
-        '#if LAF_ANDROID\\n'
-        '    // One Android SurfaceView; do not advertise unsupported native windows.\\n'
-        '    return Capabilities(int(Capabilities::WindowScale) | int(Capabilities::ColorSpaces));\\n'
-        '#else\\n'
+        '#if LAF_ANDROID\n'
+        '    // One Android SurfaceView; do not advertise unsupported native windows.\n'
+        '    return Capabilities(int(Capabilities::WindowScale) | int(Capabilities::ColorSpaces));\n'
+        '#else\n'
         '    return Capabilities(int(Capabilities::MultipleWindows) | int(Capabilities::CanResizeWindow) |',
         a.dry_run)
     update(skiasys,
-        '    );\\n  }\\n\\n  void setTabletOptions(',
-        '    );\\n#endif\\n  }\\n\\n  void setTabletOptions(',
+        '    );\n  }\n\n  void setTabletOptions(',
+        '    );\n#endif\n  }\n\n  void setTabletOptions(',
         a.dry_run)
     print('Android LAF runtime overlay prepared. Full Skia/Activity compilation still required.')
 if __name__=='__main__':
