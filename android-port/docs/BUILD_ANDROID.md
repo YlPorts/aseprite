@@ -17,7 +17,15 @@ python3 android-port/scripts/patch-aseprite-android-engine.py .
 ```
 
 Patch scripts are designed to fail when upstream anchors change, rather than
-silently substituting missing code. GitHub Actions includes a preflight job.
+silently substituting missing code. The integration test clones required files
+into a temporary directory and runs the complete overlay twice:
+
+```sh
+python3 android-port/tests/patch_laf_integration_test.py
+```
+
+GitHub Actions includes a preflight job for this test; a passing result has
+not yet been confirmed. Do not mistake successful patching for a GUI build.
 
 ## Build requirements
 
@@ -28,6 +36,19 @@ silently substituting missing code. GitHub Actions includes a preflight job.
   precompiled Linux, Windows or macOS Skia libraries).
 - Original CMake dependencies such as zlib, libpng, freetype/harfbuzz.
 
+## Skia m124 ARM64 experimental build
+
+The exact Skia branch required by Aseprite is `aseprite-m124`. This port uses
+its software raster backend first, not EGL/Vulkan acceleration. The experimental
+workflow [android-skia-arm64-experimental.yml](../../.github/workflows/android-skia-arm64-experimental.yml)
+now tries to build genuine `libskia.a`, `libskshaper.a`, and `libskunicode.a`
+for Android ARM64, with the installed NDK and GN. It does **not** compile
+Aseprite itself, publish an APK, or establish a working editor.
+
+Do not reuse precompiled Linux x86_64 Skia libraries for Android. The Android
+Skia build must produce compatible ARM64 libraries and headers before GUI
+linking can be tested.
+
 Native engine configuration **when Skia Android and all dependencies exist**:
 
 ```sh
@@ -36,7 +57,7 @@ cmake -S . -B build/android-gui -G Ninja \
   -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 \
   -DENABLE_ASEPRITE_EXE=OFF -DASEPRITE_ANDROID_GUI=ON \
   -DLAF_BACKEND=skia -DSKIA_DIR=/path/to/android-skia \
-  -DSKIA_LIBRARY_DIR=/path/to/android-skia/out/android-arm64 \
+  -DSKIA_LIBRARY_DIR=/path/to/android-skia/out/Release-Android-arm64 \
   -DGEN_EXE=/path/to/ubuntu-host/bin/gen \
   -DENABLE_NEWS=OFF -DENABLE_UPDATER=OFF \
   -DLAF_WITH_EXAMPLES=OFF -DLAF_WITH_TESTS=OFF
@@ -60,3 +81,15 @@ This prevents a blank APK from being presented as a successful port.
 
 Keep all binaries and build artifacts private. Do not publish APKs in this
 public fork. The code has **not** been tested on Galaxy A15 yet.
+
+## Platform fixes (October 2026)
+
+- The original Skia CMake dispatch selects `skia_window_android.cpp` under
+  `ANDROID`, instead of incorrectly adding the Linux/X11 window implementation.
+- Repeated LAF overlay application recognizes later, more complete patches.
+- The JNI-created window reference is released before the original
+  `SkiaSystem` tears down the application event queue.
+- Aseprite's `System::mousePosition()` now receives Android touch coordinates.
+- Original `SkiaSystem::setTextInput()` can call an Android-window method,
+  though a complete soft-keyboard/IME adapter is still missing.
+- The original JNI shared target links the raster code once, not twice.
