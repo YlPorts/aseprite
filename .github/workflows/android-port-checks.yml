@@ -1,0 +1,42 @@
+name: Android native port checks (NO APK)
+on:
+  workflow_dispatch:
+  push:
+    branches: [android-native-port-wip]
+    paths:
+      - 'android-port/**'
+      - '.github/workflows/android-port-checks.yml'
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and test native C++ input
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build cmake g++
+          bash android-port/scripts/test-host.sh
+
+  ndk-arm64:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: android-actions/setup-android@v3
+      - name: Install pinned NDK
+        run: sdkmanager 'ndk;27.2.12479018'
+      - name: Cross-compile original-compatible platform input module
+        run: |
+          cmake -S android-port -B build/android-arm64 -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/27.2.12479018/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/android-arm64 --target aseprite-android-touch
+          test -s build/android-arm64/libaseprite-android-touch.a
+          echo 'This checks a native library, NOT the complete Aseprite editor.'
+      - name: Do not create or publish an APK
+        run: |
+          if find build -type f -name '*.apk' | grep -q .; then
+            echo 'Unexpected APK from unfinished port' >&2
+            exit 1
+          fi
