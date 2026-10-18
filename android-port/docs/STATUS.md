@@ -26,12 +26,29 @@ Original Aseprite source: `YlPorts/aseprite`, branch `android-native-port-wip`.
   confirmed through the available connector.
 - No APK was compiled. No original Aseprite GUI function is claimed operational.
 
+## New original-editor bootstrapping (source integrated, not verified)
+
+- Android Java SurfaceView host in `android-port/app/` receives the real surface,
+  pointer and keyboard events and extracts authentic `data/` resources.
+- JNI entry in `src/android/jni_editor_entry.cpp` launches Aseprite's existing
+  `app_main()` in its engine thread and delivers surface/resize/input events.
+- An owning, synchronized original LAF window registry and Android keyboard
+  state provide JNI-to-LAF reference and modifier handling.
+- `android-port/native-app/CMakeLists.txt` defines a real shared `libaseprite.so`
+  from the upstream `src/main/main.cpp` and `app-lib`.
+- `patch-aseprite-android-engine.py` and `patch-laf-android-runtime.py` connect
+  source overlays without modifying `main`.
+- Gradle fails deliberately when `libaseprite.so` or original GUI assets
+  are missing; this is not a runnable APK without the original engine.
+- GitHub integration-preflight workflow checks patch compatibility only;
+  not a completed original GUI build.
+
 ## Known blockers
 
-1. Connect Android Activity/native input queue/lifecycle to `app_main()`.
+1. **Validate and fix** the new Activity/JNI `app_main()` integration in real NDK builds.
 2. Compile the original `laf` Skia backend with Android-built Skia m124,
    including adjustment of renderer's native format/canvas sizing.
-3. Wire event propagation, complete keyboard and IME, native dialogs and clipboard.
+3. Validate event propagation; complete IME, mouse/stylus edge cases, dialogs and clipboard.
 4. Compile/link original `app-lib`, generate resource headers with host `gen`.
 5. Package authentic `data/` themes/fonts/icons/strings in APK assets.
 6. SAF open/save, URI permission persistence, safe autosave/recovery.
