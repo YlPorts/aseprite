@@ -77,8 +77,10 @@ Java_com_ylports_aseprite_AsepriteActivity_nativeAttachSurface(
     os::Event event;
     event.setType(os::Event::Callback);
     event.setCallback([window] {
-      auto* androidWindow=dynamic_cast<os::WindowAndroid*>(window.get());
-      if(androidWindow) androidWindow->notifySurfaceChanged();
+      // JNI registry stores only original SkiaWindowAndroid/WindowAndroid
+      // instances; RTTI is not required on all Android NDK builds.
+      auto* androidWindow=static_cast<os::WindowAndroid*>(window.get());
+      androidWindow->notifySurfaceChanged();
     });
     os::queue_event(event);
   }
