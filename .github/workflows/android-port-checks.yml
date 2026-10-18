@@ -31,9 +31,10 @@ jobs:
       - name: Compile and test native C++ input
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build cmake g++
+          sudo apt-get install -y ninja-build cmake g++ clang lld binutils
           bash android-port/scripts/test-host.sh
           bash android-port/tests/test-skia-archive-arm64.sh
+          python3 android-port/tests/test_asset_stage.py
 
   ndk-arm64:
     runs-on: ubuntu-24.04

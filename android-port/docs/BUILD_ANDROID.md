@@ -112,3 +112,26 @@ under GitHub Actions on the `android-native-port-wip` branch. The job:
 **This is a compilation attempt**, not a demonstrated working port. The CMake
 configuration or build may expose additional portability errors. No APK is
 created. Keep Aseprite binaries private for personal use under the EULA.
+
+
+## Verified ELF staging gate (experimental)
+
+The staging script only operates after the ORIGINAL Aseprite NDK linker
+successfully produces a complete libaseprite.so. It verifies ELF64/LE,
+AArch64, ET_DYN, all seven exported Java/JNI symbols in the actual
+dynamic symbol table (not merely embedded text), and rejects unexpected
+desktop or unpackaged libc++ dependencies.
+
+Run privately from the original recursive checkout:
+
+```sh
+python3 android-port/scripts/stage-authentic-android-assets.py \
+  --root . --engine build/aseprite-gui-android-arm64/lib/libaseprite.so
+```
+
+The files are staged into Gradle's conventional jniLibs and assets paths,
+using temporary copies before installation. This does not compile the editor,
+does not sign or upload an APK, and does not authorize publishing binaries.
+The test suite compiles synthetic AArch64 and x86_64 ELF fixtures; these
+fixtures are never used as editor output. The real Skia/engine Android link
+remains a separate, as-yet-unverified milestone.
