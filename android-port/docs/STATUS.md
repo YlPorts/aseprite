@@ -301,3 +301,26 @@ all desktop text widgets remain pending testing.
 The original Aseprite source, project structure, layers, file formats,
 and desktop implementation are preserved. No successful full AArch64
 `libaseprite.so`, editor startup, or installable APK can yet be claimed.
+
+## 2026-10-18 — Original LAF repaint and guarded soft keyboard
+
+The Android LAF backend no longer discards calls to
+`WindowAndroid::invalidateRegion()`. Requests now queue **coalesced**
+`os::Event::Callback` events, retaining the original window until Aseprite's
+own UI loop calls `onPaint()`. Reattaching/resizing Android's SurfaceView
+also schedules a redraw so the editor image is restored even if no pixels
+change after foregrounding.
+
+The native Android soft keyboard bridge is now **opt-in**: the underlying
+`EditorSurfaceView` reports itself as a text editor only after the original
+`SkiaSystem::setTextInput(true)` request. The state is reset on the Java UI
+thread and `InputMethodManager.restartInput()` is called before show/hide.
+This prevents ordinary finger/stylus painting from activating a keyboard.
+
+Source checks for the real original LAF callback and conditional IME pipeline
+are included in `verify_android_bootstrap_contract.py`, consumed by
+GitHub Actions.
+
+**Verification:** code committed and re-fetched. No successful new Android
+ARM64 CI run or working original Aseprite GUI is confirmed. The latest Actions
+preflight and native-check jobs remain pending, and no APK is published.
