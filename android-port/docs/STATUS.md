@@ -263,3 +263,41 @@ device tests. No installable release is claimed.
   a linked `libaseprite.so`, the original editor GUI on an Android device,
   or an installable APK. Source-level/host checks are not substitutes.
 
+
+## 2026-10-18 — verified GitHub Actions evidence and first Android IME bridge
+
+**Verified historical result:** [Android original editor integration preflight
+#39153012716](https://github.com/YlPorts/aseprite/actions/runs/39153012716)
+completed **success**. It applied original pinned LAF patches twice, checked
+idempotence/dry-run, verified Android window selection, and compiled the
+original LAF keyboard adapter on the Linux runner. This does not prove an
+AArch64 Skia/editor link.
+
+**Verified failure:** [experimental original core run
+#39155210862](https://github.com/YlPorts/aseprite/actions/runs/39155210862)
+failed at `android-actions/setup-android@v3` because `sdkmanager` attempted
+to install the unavailable `tools` package; no editor compilation occurred
+in that job. All four experimental Android workflows now use the Ubuntu
+runner's already installed SDK tools directly to install NDK 27.2.12479018,
+instead of `setup-android@v3`. Those corrections are pending CI validation.
+
+**Action backlog:** Hundreds of historical push-triggered runs had been
+queued because the upstream desktop matrix started on every Android commit.
+Only on `android-native-port-wip`, desktop `build.yml` ignores pushes
+to the Android branch, and the Android workflows now use branch-scoped
+concurrency with `cancel-in-progress: false`; the original `main` branch
+and its desktop build behavior were not changed.
+
+**IME integration (experimental):** `WindowAndroid::setTextInput()` now
+calls a JNI bridge, which asks Java's `InputMethodManager` to display/hide
+the keyboard. A `SurfaceView` `InputConnection` commits Unicode code
+points as events on Aseprite's authentic `os::Event` queue. The bridge also
+handles backspace, keyboard events and Activity recreation. JNI signatures,
+Java-side names, and LAF bridge relationships have been inspected in the
+committed source, but **Java/NDK compilation and end-to-end IME behavior
+are not yet verified on Android**. In particular, full IME composition and
+all desktop text widgets remain pending testing.
+
+The original Aseprite source, project structure, layers, file formats,
+and desktop implementation are preserved. No successful full AArch64
+`libaseprite.so`, editor startup, or installable APK can yet be claimed.
