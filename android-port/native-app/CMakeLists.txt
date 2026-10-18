@@ -11,6 +11,8 @@ endif()
 if(NOT LAF_BACKEND STREQUAL "skia")
   message(FATAL_ERROR "Original editor requires its Skia renderer, not a fake UI")
 endif()
+# The raster presenter is already compiled into laf-os by the guarded
+# platform overlay. Do not link its standalone archive again.
 add_subdirectory(${CMAKE_SOURCE_DIR}/android-port ${CMAKE_BINARY_DIR}/android-port-native)
 add_library(aseprite SHARED
   ${CMAKE_SOURCE_DIR}/src/main/main.cpp
@@ -22,5 +24,5 @@ target_include_directories(aseprite PRIVATE
   ${CMAKE_SOURCE_DIR}/laf
   ${CMAKE_SOURCE_DIR}/android-port/src/android)
 target_link_libraries(aseprite PRIVATE app-lib
-  aseprite-android-touch aseprite-android-raster laf-os android log)
+  aseprite-android-touch laf-os android log)
 add_dependencies(aseprite copy_data)
