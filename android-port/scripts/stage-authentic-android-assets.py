@@ -25,7 +25,11 @@ def verify_aarch64_shared_lib(path: Path) -> None:
     if struct.unpack_from("<H", header, 18)[0] != EM_AARCH64:
         raise ValueError(f"{path}: expected machine AArch64")
     if path.stat().st_size < 1024:
-        raise ValueError(f"{path}: too small to be the real Aseprite engine")
+        raise ValueError(f"{path}: too small to be the original editor library")
+    # The JNI bridge is mandatory. An arbitrary Android .so is not the editor.
+    with path.open("rb") as f:
+        if b"Java_com_ylports_aseprite_AsepriteActivity_nativeStartOriginalEditor" not in f.read():
+            raise ValueError(f"{path}: missing the original-editor JNI bootstrap symbol")
 
 def main() -> None:
     p = argparse.ArgumentParser()
