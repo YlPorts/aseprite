@@ -37,8 +37,23 @@ void WindowAndroid::setTextInput(bool enabled, const gfx::Point& caretPos) {
   aseandroid::requestOriginalEditorIme(enabled);
 }
 void WindowAndroid::invalidateRegion(const gfx::Region& rgn) {
-  // TODO: schedule async invalidated-region paint on Aseprite UI thread.
-  (void)rgn;
+  (void)rgn; // Present the full Skia bitmap; dirty rect optimization follows.
+  if (!isVisible() || width()<=0 || height()<=0) return;
+  if (m_paintQueued.exchange(true,std::memory_order_acq_rel)) return;
+  // A callback executes via the ORIGINAL Aseprite UI event queue, never
+  // synchronously inside a drawing operation or on the Android Java thread.
+  // Keep the real Window object alive until this queued paint completes.
+  auto self=AddRef(this);
+  os::Event redraw;
+  redraw.setType(os::Event::Callback);
+  redraw.setWindow(self);
+  redraw.setCallback([self] {
+    auto* window=static_cast<WindowAndroid*>(self.get());
+    window->m_paintQueued.store(false,std::memory_order_release);
+    if(window->isVisible() && window->width()>0 && window->height()>0)
+      window->onPaint(window->bounds());
+  });
+  os::queue_event(redraw);
 }
 ScreenRef WindowAndroid::screen() const { return androidPrimaryScreen(); }
 void WindowAndroid::setMousePosition(const gfx::Point& position) {
