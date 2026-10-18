@@ -43,7 +43,7 @@ cmake -S . -B "$GEN_BUILD" -G Ninja \
   -DENABLE_ASEPRITE_EXE=OFF -DENABLE_TESTS=OFF \
   -DENABLE_NEWS=OFF -DENABLE_UPDATER=OFF \
   -DENABLE_I18N_STRINGS=OFF -DENABLE_SCRIPTING=OFF \
-  -DLAF_WITH_TESTS=OFF -DLAF_WITH_EXAMPLES=OFF
+  -DLAF_WITH_TESTS=OFF -DLAF_WITH_EXAMPLES=OFF -DLAF_WITH_CLIP=OFF
 cmake --build "$GEN_BUILD" --target gen -j 2
 GEN="$GEN_BUILD/bin/gen"
 if [[ ! -x "$GEN" ]]; then
@@ -71,5 +71,10 @@ if [[ -z "$OUTPUT" || ! -s "$OUTPUT" ]]; then
   echo "ERROR: authentic original editor did not produce libaseprite.so" >&2
   exit 3
 fi
-echo "Original Aseprite Android shared-library build succeeded at $OUTPUT."
+READELF="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+if [[ ! -x "$READELF" ]] || ! "$READELF" -h "$OUTPUT" | grep -q "Machine:.*AArch64"; then
+  echo "ERROR: linked library is not a real AArch64 ELF shared object" >&2
+  exit 3
+fi
+echo "Original Aseprite Android AArch64 shared-library build succeeded at $OUTPUT."
 echo "No APK was packaged, signed, uploaded, or distributed."
