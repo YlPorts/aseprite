@@ -3,6 +3,7 @@
 #include "os/keys.h"
 #include "os/android/key_state.h"
 #include "gfx/point.h"
+#include <algorithm>
 #include <cmath>
 namespace aseandroid {
 namespace {
@@ -22,11 +23,18 @@ void space(os::Event::Type type, const os::WindowRef& window) {
   os::androidSetKeyPressed(os::kKeySpace, type==os::Event::KeyDown);
   os::queue_event(event);
 }
+gfx::Point logicalPosition(const Gesture& g,const os::WindowRef& window) {
+  // Original LAF x11/win backends divide physical touch/mouse coordinates
+  // by window UI scale before queuing Mouse/TouchMagnify events.
+  const int scale=std::max(1,window->scale());
+  return gfx::Point(static_cast<int>(std::lround(g.x))/scale,
+                    static_cast<int>(std::lround(g.y))/scale);
+}
 void mouse(os::Event::Type type, const Gesture& g, const os::WindowRef& window, bool pan) {
   os::Event event;
   event.setType(type);
   event.setWindow(window);
-  event.setPosition(gfx::Point(std::lround(g.x),std::lround(g.y)));
+  event.setPosition(logicalPosition(g,window));
   event.setPointerType(pointer(g.tool));
   event.setPressure(g.pressure);
   event.setButton(os::Event::LeftButton);
