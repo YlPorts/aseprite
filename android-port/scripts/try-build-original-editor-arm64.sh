@@ -21,11 +21,11 @@ if [[ ! -s "$LIBS/libskia.a" || ! -s "$LIBS/libskshaper.a" || ! -s "$LIBS/libsku
   echo "ERROR: genuine Android-built Aseprite Skia m124 static libraries are missing" >&2
   exit 2
 fi
-if ! grep -Eq '^target_os = "android"$' "$LIBS/args.gn"; then
+if ! grep -Eq '^[[:space:]]*target_os[[:space:]]*=[[:space:]]*"android"([[:space:]]|$)' "$LIBS/args.gn"; then
   echo "ERROR: provided Skia build is not targeting Android" >&2
   exit 2
 fi
-if ! grep -Eq '^target_cpu = "arm64"$' "$LIBS/args.gn"; then
+if ! grep -Eq '^[[:space:]]*target_cpu[[:space:]]*=[[:space:]]*"arm64"([[:space:]]|$)' "$LIBS/args.gn"; then
   echo "ERROR: provided Skia build is not ARM64" >&2
   exit 2
 fi
