@@ -1,5 +1,6 @@
 #include "os/android/window.h"
 #include "os/android/screen.h"
+#include "os/android/key_state.h"
 #include "os/event.h"
 #include "os/event_queue.h"
 #include "android_raster_window.h"
@@ -34,7 +35,11 @@ void WindowAndroid::invalidateRegion(const gfx::Region& rgn) {
   // TODO: schedule async invalidated-region paint on Aseprite UI thread.
   (void)rgn;
 }
-ScreenRef WindowAndroid::screen() const { return make_ref<ScreenAndroid>(); }
+ScreenRef WindowAndroid::screen() const { return androidPrimaryScreen(); }
+void WindowAndroid::setMousePosition(const gfx::Point& position) {
+  // The caller supplies logical coordinates; System stores physical pixels.
+  androidSetPointerPosition(position.x*scale(), position.y*scale());
+}
 Window::NativeHandle WindowAndroid::nativeHandle() const {
   return aseandroid::globalRasterWindow().nativeHandle();
 }
