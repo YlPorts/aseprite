@@ -194,3 +194,26 @@ coordenadas físicas usando el escalado de la interfaz. Los nuevos cambios
 están subidos pero la compilación integral ARM64 y el arranque real no están
 verificados.
 
+
+## 18 Oct 2026 — synchronised ultrawide touch and original startup diagnostics
+
+- Added `rasterViewport()` as shared source-to-screen centering geometry:
+  the same helper is used for Skia RGBA/BGRA presentation and original
+  `laf` touch-position translation.
+- `laf_event_bridge.cpp` now reads the real `os::Surface` dimensions
+  during surface changes and subtracts the actual viewport offsets before
+  translating touchscreen coordinates to UI pixels. Coordinates outside
+  letterboxing remain outside the drawable surface.
+- Expanded `raster_presenter_test.cpp` for centered and tall destination
+  surfaces and invalid geometry.
+- Avoided an RTTI-dependent downcast for the window registered exclusively
+  as `WindowAndroid` in this Android build.
+- Added explicit `logcat` start, exit code and thread-teardown messages for
+  the authentic `app_main()` entrypoint under tag `AsepriteAndroid`.
+- Added source-level preflight checks for matching viewport usage in the
+  original-event bridge and renderer.
+
+**Current verification limit:** source commits are pushed, but the new CI
+runs and the full ARM64 `libaseprite.so` link have not been confirmed
+successful. This is still **not** a functional Android APK.
+
