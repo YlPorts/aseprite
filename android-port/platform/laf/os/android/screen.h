@@ -9,4 +9,6 @@ public:
   ColorSpaceRef colorSpace() const override { return nullptr; }
   void* nativeHandle() const override;
 };
+// Share one stable screen identity across System and Window, like desktop LAF.
+ScreenRef androidPrimaryScreen();
 } // namespace os
