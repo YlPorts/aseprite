@@ -77,16 +77,27 @@ Java_com_ylports_aseprite_AsepriteActivity_nativeAttachSurface(
   }
 }
 
-extern "C" JNIEXPORT void JNICALL
+extern "C" JNIEXPORT jboolean JNICALL
 Java_com_ylports_aseprite_AsepriteActivity_nativeStartOriginalEditor(
     JNIEnv* env,jclass,jstring filesRoot) {
-  if(!filesRoot || !aseandroid::globalRasterWindow().hasSurface()) return;
+  if(!filesRoot || !aseandroid::globalRasterWindow().hasSurface()) return JNI_FALSE;
   const char* value=env->GetStringUTFChars(filesRoot,nullptr);
-  if(!value) return;
+  if(!value) return JNI_FALSE;
   std::string root(value);
   env->ReleaseStringUTFChars(filesRoot,value);
-  if(root.empty()) return;
-  std::call_once(startOnce,[&] {std::thread(startOriginalAseprite,root).detach();});
+  if(root.empty()) return JNI_FALSE;
+  bool dispatched=false;
+  try {
+    std::call_once(startOnce,[&] {
+      std::thread(startOriginalAseprite,root).detach();
+      dispatched=true;
+    });
+  } catch(const std::exception& ex) {
+    __android_log_print(ANDROID_LOG_ERROR,"AsepriteAndroid",
+                        "Cannot start original editor thread: %s",ex.what());
+    return JNI_FALSE;
+  }
+  return dispatched ? JNI_TRUE : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT void JNICALL
