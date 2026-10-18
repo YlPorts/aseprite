@@ -24,6 +24,10 @@ entry=re.search(
 assert signature and entry, "Java method and JNI native return type must agree"
 assert java.count("nativeStartOriginalEditor(getFilesDir().getAbsolutePath())")==1
 assert "if (nativeStartOriginalEditor(getFilesDir().getAbsolutePath()))" in java
+# Do not treat a truncated resource as installed after a killed/failed import.
+assert '".installing"' in java and "temporary.renameTo(dest)" in java
+assert "out.getFD().sync();" in java
+assert "temporary.delete();" in java
 assert "return dispatched ? JNI_TRUE : JNI_FALSE;" in jni
 assert "app_main(1,argv)" in jni, "Must launch original Aseprite app_main"
 assert "AsepriteAndroid" in jni and "Original editor app_main exited with code" in jni
