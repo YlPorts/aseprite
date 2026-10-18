@@ -29,6 +29,10 @@ jobs:
       - name: Unit-test pinned upstream LAF overlay, re-entry and dry-run
         run: |
           python3 android-port/tests/patch_laf_integration_test.py
+      - name: Reject wrong-architecture and invalid staged editor binaries
+        run: |
+          python3 -m py_compile android-port/scripts/stage-authentic-android-assets.py
+          python3 android-port/tests/test_asset_stage.py
       - name: Apply native Android overlay to original source checkout
         run: |
           python3 android-port/scripts/patch-laf-headless-android.py .
