@@ -23,7 +23,7 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
     private boolean loadingAssets=false;
 
     private static native void nativeAttachSurface(Surface surface);
-    private static native void nativeStartOriginalEditor(String filesRoot);
+    private static native boolean nativeStartOriginalEditor(String filesRoot);
     private static native void nativeTouch(int action,int pointerIndex,int[] ids,
                                             float[] xy,float[] pressure,int[] tools);
     private static native void nativeKey(int action,int keyCode,int unicode,int modifiers);
@@ -76,8 +76,12 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
                 android.util.Log.e("AsepriteAndroid","Cannot create private Aseprite user directory");
                 return;
             }
-            nativeStartOriginalEditor(getFilesDir().getAbsolutePath());
-            nativeStarted=true;
+            if (nativeStartOriginalEditor(getFilesDir().getAbsolutePath())) {
+                nativeStarted=true;
+            } else {
+                android.util.Log.e("AsepriteAndroid",
+                    "Original editor native startup was not accepted; will retry on surface event");
+            }
         }
     }
     private void prepareOriginalResources(){
