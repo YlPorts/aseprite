@@ -53,7 +53,7 @@ fi
 
 cmake -S . -B "$ANDROID_BUILD" -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
-  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 \
+  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 -DANDROID_STL=c++_static \
   -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
   -DENABLE_ASEPRITE_EXE=OFF -DASEPRITE_ANDROID_GUI=ON \
   -DENABLE_TESTS=OFF -DENABLE_NEWS=OFF -DENABLE_UPDATER=OFF \
@@ -79,5 +79,25 @@ if [[ ! -x "$READELF" ]] || ! "$READELF" -h "$OUTPUT" | grep -q "Machine:.*AArch
   echo "ERROR: linked library is not a real AArch64 ELF shared object" >&2
   exit 3
 fi
-echo "Original Aseprite Android AArch64 shared-library build succeeded at $OUTPUT."
+# Java calls these exact functions through System.loadLibrary("aseprite").
+# Check the real ELF dynamic symbol table, not just file names or strings.
+for symbol in \
+  Java_com_ylports_aseprite_AsepriteActivity_nativeStartOriginalEditor \
+  Java_com_ylports_aseprite_AsepriteActivity_nativeAttachSurface \
+  Java_com_ylports_aseprite_AsepriteActivity_nativeRegisterImeBridge \
+  Java_com_ylports_aseprite_AsepriteActivity_nativeCommitText \
+  Java_com_ylports_aseprite_AsepriteActivity_nativeTouch \
+  Java_com_ylports_aseprite_AsepriteActivity_nativeKey \
+  Java_com_ylports_aseprite_AsepriteActivity_nativeAppFocus
+do
+  if ! "$READELF" --dyn-syms --wide "$OUTPUT" | grep -Eq "[[:space:]]$symbol$"; then
+    echo "ERROR: required original Android JNI entrypoint is not exported: $symbol" >&2
+    exit 3
+  fi
+done
+if "$READELF" -d "$OUTPUT" | grep -q 'Shared library: \\[libc++_shared.so\\]'; then
+  echo "ERROR: editor unexpectedly depends on libc++_shared.so; use -DANDROID_STL=c++_static or package the runtime" >&2
+  exit 3
+fi
+echo "Original Aseprite Android AArch64 shared-library linked with all seven JNI entrypoints: $OUTPUT."
 echo "No APK was packaged, signed, uploaded, or distributed."
