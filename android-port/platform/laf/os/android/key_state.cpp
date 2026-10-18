@@ -44,6 +44,23 @@ KeyScancode androidMapKey(int code) {
     case 112: return kKeyDel;
     case 62: return kKeySpace;
     case 61: return kKeyTab;
+    // Android KEYCODE punctuation: necessary for keyboard shortcuts,
+    // file names and normal editing in the original Aseprite UI.
+    case 55: return kKeyComma;
+    case 56: return kKeyStop;
+    case 68: return kKeyTilde;
+    case 69: return kKeyMinus;
+    case 70: return kKeyEquals;
+    case 71: return kKeyOpenbrace;
+    case 72: return kKeyClosebrace;
+    case 73: return kKeyBackslash;
+    case 74: return kKeyColon;
+    case 75: return kKeyQuote;
+    case 76: return kKeySlash;
+    case 92: return kKeyPageUp;
+    case 93: return kKeyPageDown;
+    case 122: return kKeyHome;
+    case 123: return kKeyEnd;
     case 19: return kKeyUp;
     case 20: return kKeyDown;
     case 21: return kKeyLeft;
