@@ -42,16 +42,24 @@ def main():
     if not (laf / "os/CMakeLists.txt").is_file() or not (laf / "base/CMakeLists.txt").is_file():
         parser.error("Run git submodule update --init --recursive in the original source checkout")
     base = laf / "base/CMakeLists.txt"
+    android_threads = (
+        "  elseif(ANDROID)\n"
+        "    target_compile_definitions(laf-base PUBLIC LAF_ANDROID)\n"
+        "    find_package(Threads REQUIRED)\n"
+        "    target_link_libraries(laf-base ${CMAKE_THREAD_LIBS_INIT})\n")
     replace_once(base,
         "  else()\n    target_compile_definitions(laf-base PUBLIC LAF_LINUX)\n    target_link_libraries(laf-base pthread)\n",
-        "  elseif(ANDROID)\n    target_compile_definitions(laf-base PUBLIC LAF_ANDROID)\n    target_link_libraries(laf-base pthread)\n  else()\n    target_compile_definitions(laf-base PUBLIC LAF_LINUX)\n    target_link_libraries(laf-base pthread)\n",
+        android_threads + "  else()\n    target_compile_definitions(laf-base PUBLIC LAF_LINUX)\n    target_link_libraries(laf-base pthread)\n",
         args.dry_run,
-        accepted_later="  elseif(ANDROID)\n    target_compile_definitions(laf-base PUBLIC LAF_ANDROID)\n    find_package(Threads REQUIRED)")
+        accepted_later="  elseif(ANDROID)\n    target_compile_definitions(laf-base PUBLIC LAF_ANDROID)\n")
     # Bionic provides pthread in libc, not in a separate libpthread.
-    replace_once(base,
-        "  elseif(ANDROID)\n    target_compile_definitions(laf-base PUBLIC LAF_ANDROID)\n    target_link_libraries(laf-base pthread)\n",
-        "  elseif(ANDROID)\n    target_compile_definitions(laf-base PUBLIC LAF_ANDROID)\n    find_package(Threads REQUIRED)\n    target_link_libraries(laf-base ${CMAKE_THREAD_LIBS_INIT})\n",
-        args.dry_run)
+    # Upgrade an already patched older checkout, while a dry run on pristine
+    # sources validates the complete insertion above without writing first.
+    legacy_threads = (
+        "  elseif(ANDROID)\n    target_compile_definitions(laf-base PUBLIC LAF_ANDROID)\n"
+        "    target_link_libraries(laf-base pthread)\n")
+    if legacy_threads in base.read_text(encoding="utf-8"):
+        replace_once(base, legacy_threads, android_threads, args.dry_run)
     p = laf / "base/platform.h"
     replace_once(p, "    Linux,\n", "    Linux,\n    Android,\n", args.dry_run)
     replace_once(p,

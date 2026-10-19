@@ -120,6 +120,10 @@ def main():
     with tempfile.TemporaryDirectory(prefix="aseprite-laf-integration-") as temp:
         tmp = Path(temp)
         clone_required_sources(tmp)
+        pristine = snapshot(tmp)
+        subprocess.run([sys.executable, str(SCRIPTS[0]), str(tmp), "--dry-run"],
+                       check=True, text=True)
+        assert snapshot(tmp) == pristine, "Initial headless dry run changed pinned sources"
         run_overlays(tmp)
         verify(tmp)
         first = snapshot(tmp)
