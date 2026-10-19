@@ -10,6 +10,8 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <utility>
+#include <unistd.h>
 #include "android_raster_window.h"
 #include "android_ime_bridge.h"
 #include "touch_router.h"
@@ -32,6 +34,20 @@ JavaVM* imeJavaVM=nullptr;
 jclass imeActivityClass=nullptr; // Process-lifetime class reference.
 jmethodID imeRequestMethod=nullptr;
 
+void queueGestures(std::vector<aseandroid::Gesture> gestures,
+                   const os::WindowRef& window) {
+  if (!window || gestures.empty()) return;
+  os::Event event;
+  event.setType(os::Event::Callback);
+  event.setWindow(window);
+  // Coordinate conversion reads the original Skia surface. That surface
+  // can be recreated by onResize(), so access it only on Aseprite's UI
+  // thread, together with Android's already queued resize callbacks.
+  event.setCallback([window, gestures=std::move(gestures)] {
+    aseandroid::postToLaf(gestures,window);
+  });
+  os::queue_event(event);
+}
 
 void startOriginalAseprite(std::string filesRoot) {
   const std::string data=filesRoot+"/data";
@@ -39,6 +55,13 @@ void startOriginalAseprite(std::string filesRoot) {
   setenv("HOME",filesRoot.c_str(),1);
   setenv("ASEPRITE_ANDROID_DATA_DIR",data.c_str(),1);
   setenv("ASEPRITE_USER_FOLDER",user.c_str(),1);
+  // Android launches an Activity with a non-writable process directory.
+  // Start the original file selector in this app's existing private folder.
+  if (chdir(user.c_str()) != 0) {
+    __android_log_print(ANDROID_LOG_ERROR,"AsepriteAndroid",
+                        "Cannot enter private Aseprite user directory");
+    return;
+  }
   char name[]="aseprite";
   char* argv[]={name,nullptr};
   originalEditorStarted.store(true,std::memory_order_release);
@@ -137,7 +160,7 @@ Java_com_ylports_aseprite_AsepriteActivity_nativeAttachSurface(
     aseandroid::Frame cancel{};
     cancel.action=aseandroid::Action::Cancel;
     auto gestures=touchRouter.process(cancel);
-    if(window) aseandroid::postToLaf(gestures,window);
+    queueGestures(std::move(gestures),window);
     os::androidClearPressedKeys();
   }
   // Send resize through the genuine Aseprite/LAF UI thread.
@@ -223,7 +246,7 @@ Java_com_ylports_aseprite_AsepriteActivity_nativeTouch(
   std::lock_guard<std::mutex> lock(touchMutex);
   const auto window=os::androidAcquireWindow();
   if(!window) return;
-  aseandroid::postToLaf(touchRouter.process(frame),window);
+  queueGestures(touchRouter.process(frame),window);
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -259,7 +282,7 @@ Java_com_ylports_aseprite_AsepriteActivity_nativeAppFocus(
     aseandroid::Frame cancel{};
     cancel.action=aseandroid::Action::Cancel;
     auto gestures=touchRouter.process(cancel);
-    if(window) aseandroid::postToLaf(gestures,window);
+    queueGestures(std::move(gestures),window);
     os::androidClearPressedKeys();
   }
   if(window) {
