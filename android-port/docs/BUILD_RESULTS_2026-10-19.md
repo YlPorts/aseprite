@@ -6,6 +6,9 @@
 han enlazado en una `libaseprite.so` auténtica Android AArch64. El enlace
 usa `--no-undefined`, y el ELF contiene las siete funciones JNI definidas.
 El proyecto Gradle existente produjo una APK de desarrollo privada y firmada.
+La candidata ya puede entregarse para un primer ensayo en Android ARM64;
+esto no acredita todavía su arranque gráfico. El usuario realizará esa prueba
+en su teléfono y no requiere validarla antes en un emulador.
 
 **PROBADO:** el motor Android ejecutado con QEMU user-mode y el cargador y
 las bibliotecas Bionic de la imagen oficial Android 16 superó guardado y
@@ -133,7 +136,19 @@ El mismo ensayo se añadió al workflow completo, sin crear otro workflow.
   [preflight 39183119566](https://github.com/YlPorts/aseprite/actions/runs/39183119566)
   y [core 39183119572](https://github.com/YlPorts/aseprite/actions/runs/39183119572)
   terminaron **success**. [Skia/motor 39183119542](https://github.com/YlPorts/aseprite/actions/runs/39183119542)
-  se está comprobando hasta el final; su resultado se registra al cerrar la fase.
+  también terminó **success**, con enlace y validación ELF reales.
+- Revisión `da3f22070040caaef4cf60039647c787bd10c4a8`:
+  [Skia/motor y archivos Android 39184312685](https://github.com/YlPorts/aseprite/actions/runs/39184312685)
+  terminó **success**. Se inspeccionó el registro del job `117844338907`:
+  `app-lib` completo, enlace estricto, ELF AArch64 con siete JNI definidas
+  y las 22 invocaciones del motor real con Bionic Android 16 superadas.
+  SHA-256 de la biblioteca generada en ese runner:
+  `0e43081de26112093c8e04d2ff7c1c310e18ea63198b85dd7f5ef624f4e32c32`.
+  Es una compilación independiente de la local, con otra versión y rutas
+  de depuración; no se presenta su hash como el del motor local empaquetado.
+  [Checks 39184312725](https://github.com/YlPorts/aseprite/actions/runs/39184312725)
+  y [preflight 39184312678](https://github.com/YlPorts/aseprite/actions/runs/39184312678)
+  también terminaron **success**.
 - El nuevo paso de ejecución batch y el empaquetado privado están en el
   [workflow existente](../../.github/workflows/android-skia-arm64-experimental.yml).
   El empaquetado privado no se ejecuta en este repositorio público.
@@ -169,6 +184,7 @@ no se publica una revisión modificada del submódulo ni un binario.
 - `android-port/README.md`
 - `android-port/docs/STATUS.md`
 - `android-port/docs/BUILD_ANDROID.md`
+- `android-port/docs/PROBAR_ANDROID.md`
 - Este informe.
 
 ## Commits de implementación de esta continuación
@@ -193,6 +209,7 @@ d721c2334 fix(android): validate pristine headless dry run before overlay migrat
 d08c3ab69 fix(android): match original LAF and Skia smart-pointer calling conventions
 cdbff44a2 test(android): execute original engine file roundtrips with genuine Android 16 Bionic
 f0c3e4eb0 build(android): use original Aseprite artwork as the launcher icon
+da3f22070 docs(android): record genuine ARM64 engine and file tests with private APK build procedure
 ```
 
 El commit de documentación registra estas evidencias y el procedimiento
@@ -211,26 +228,35 @@ El archivo sin strip contiene información de depuración; Gradle elimina
 esa información al empaquetar la biblioteca, conservando el motor.
 No se subió una APK ni una biblioteca Aseprite a artefactos públicos.
 
-[Procedimiento desde el móvil en un repositorio privado](BUILD_ANDROID.md).
+[Procedimiento para compilar en GitHub Actions desde el navegador del móvil](BUILD_ANDROID.md).
 El workflow privado conserva la APK solo tres días y la marca
 `RUNTIME-UNVERIFIED`; la firma es de depuración.
+La compilación se hace en los servidores de GitHub, no en el teléfono.
+La candidata local se prepara aparte para entrega privada, sin subirla al
+repositorio público ni a sus artefactos. [Ensayo en el teléfono](PROBAR_ANDROID.md).
 
 ## Primer bloqueo pendiente y próxima prioridad
 
 No queda un error C++/CMake/enlace pendiente en la compilación local completa.
-El bloqueo para validar B/D es un Android ARM64 gráfico real: el emulador
-oficial 37.2.12 rechazó la AVD ARM64 en este host x86-64 con:
+La compilación completa y las pruebas batch también terminaron en Actions.
+El siguiente resultado pendiente es **ejecutar esta APK y comprobar la
+primera interfaz original en Android**.
+
+El frontend del emulador oficial 37.2.12 rechazó ARM64 en este host x86-64:
 
 ```text
 Avd's CPU Architecture 'arm64' is not supported by the QEMU2 emulator on x86_64 host.
 System image must match host architecture.
 ```
 
-No se dispone del Galaxy A15. El backend QEMU gráfico directo tampoco
-arrancó por dispositivos PCI de audio no disponibles; no se cuenta como
-un arranque Android. Las pruebas user-mode anteriores solo cubren el motor.
+Al usar directamente su backend QEMU con la máquina ARM virtual se llegó
+al kernel Android 16 y ADB confirmó ARM64/API 36. ART/zygote falló antes
+de habilitar el servicio de paquetes: no se instaló ni inició la APK y no
+se cuenta como una prueba de Aseprite. Se detuvieron esos intentos; el
+usuario indicó que probará la candidata en su Galaxy A15. No se dispone
+físicamente de ese dispositivo. Las pruebas user-mode solo cubren el motor.
 
-Próxima prioridad: instalar la APK privada en Android ARM64, obtener logcat,
+Próxima prioridad: instalar la APK privada en Android ARM64,
 verificar primera ventana/repintado original y después crear/dibujar/guardar
 un documento desde la interfaz. Luego completar SAF, IME (composición,
 selección y edición), portapapeles del sistema, controles externos y ciclo

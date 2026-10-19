@@ -1,12 +1,17 @@
 # Compilación del Aseprite original para Android ARM64
 
 Rama: `android-native-port-wip`. No se modifica `main`.
-El motor original **ya se enlazó localmente** como `libaseprite.so`, y el
+El motor original **ya se enlazó localmente y en GitHub Actions** como `libaseprite.so`, y el
 proyecto Gradle existente produjo una APK de desarrollo firmada.
 **El arranque de la interfaz y la edición en Android todavía no están probados.**
 Consulta [STATUS.md](STATUS.md) y el [informe verificable](BUILD_RESULTS_2026-10-19.md).
 
-## Compilar y obtener una APK privada desde el móvil
+## Compilar en GitHub Actions y descargar desde el móvil
+
+La compilación ocurre en los servidores de GitHub. El móvil solo necesita
+su navegador para iniciar el workflow y descargar la APK; no instala NDK,
+Gradle ni herramientas de compilación. Si ya tienes la candidata privada,
+puedes pasar directamente al [ensayo en Android](PROBAR_ANDROID.md).
 
 Este repositorio es público. Su workflow público compila y verifica el motor,
 pero **no sube bibliotecas ni APKs**. Para uso personal, respetando la licencia
@@ -139,7 +144,8 @@ Para repetirlas en Linux con `qemu-user`, `e2fsprogs`, el NDK y esa imagen:
 python3 android-port/scripts/test-original-editor-android-batch.py --engine build/aseprite-gui-android-arm64/lib/libaseprite.so --system-image "$ANDROID_HOME/system-images/android-36/default/arm64-v8a/system.img"
 ```
 
-Para el primer ensayo real, instala solamente la APK privada y captura
-`adb logcat -s AsepriteAndroid AndroidRuntime libc DEBUG`, verificando carga,
-recursos, primera ventana y primer repintado antes de probar edición.
+Para el primer ensayo real, instala solamente la APK privada y sigue
+[PROBAR_ANDROID.md](PROBAR_ANDROID.md). No requiere PC ni emulador.
+Si hay acceso a ADB, el filtro opcional es
+`adb logcat -s AsepriteAndroid AndroidRuntime libc DEBUG`.
 Las comprobaciones físicas del Galaxy A15 permanecen pendientes.

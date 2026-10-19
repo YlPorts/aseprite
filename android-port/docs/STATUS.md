@@ -8,16 +8,18 @@ Referencia inicial inspeccionada: `f3c8f1ed646059a15235018be0668fd686742119`.
 | --- | --- |
 | Skia original m124: skia, skshaper, skunicode | **COMPILADO** Android ARM64 localmente y en Actions |
 | Generador original gen | **COMPILADO** para el runner Linux |
-| laf-os, bibliotecas originales y app-lib | **COMPILADO** Android ARM64 localmente |
+| laf-os, bibliotecas originales y app-lib | **COMPILADO** Android ARM64 localmente y en Actions |
 | libaseprite.so original, --no-undefined | **COMPILADO**, ELF AArch64 y siete exportaciones JNI **PROBADAS** |
 | Proyecto Gradle existente y recursos originales | **COMPILADO** como APK privada local, firma y contenido **PROBADOS** |
-| Motor Android en modo batch: archivos/capas/frames y spritesheets | **PROBADO** bajo QEMU con Bionic Android 16; sin interfaz |
+| Motor Android en modo batch: archivos/capas/frames y spritesheets | **PROBADO** localmente y en Actions, bajo QEMU con Bionic Android 16; sin interfaz |
 | Interfaz original en Android, dibujo y guardado desde la GUI | **PENDIENTE** de ejecución real |
 | Galaxy A15, Android 16, táctil/IME/ciclo de vida/rendimiento | **PENDIENTE** de pruebas físicas |
 
 La APK es de desarrollo, **sin arranque verificado**. No hay una release
 funcional ni binarios publicados. Compilar y validar el paquete no demuestra
 que las herramientas o la interfaz funcionen en Android.
+Es una candidata para que el usuario pruebe el primer arranque en su Galaxy;
+no necesita compilar en el teléfono ni realizar pruebas en un emulador.
 
 ## Implementación conservada
 
@@ -52,9 +54,15 @@ Las pruebas de módulos y compilación no certifican esos flujos completos.
 ## Próxima prioridad
 
 Obtener el **primer arranque gráfico real** y su logcat en un sistema
-Android ARM64. El emulador oficial disponible rechaza una AVD ARM64 sobre
-este host x86-64. QEMU user-mode permitió probar el motor Android en modo
-batch, pero no se ha mostrado ni probado la primera pantalla.
+Android ARM64. El usuario probará la candidata en su Galaxy A15.
+Los intentos de emulador se detuvieron sin llegar a instalar la APK.
+QEMU user-mode permitió probar el motor Android en modo batch,
+pero no se ha mostrado ni probado la primera pantalla.
+
+El [workflow completo 39184312685](https://github.com/YlPorts/aseprite/actions/runs/39184312685)
+terminó **success** para `da3f22070`: Skia, motor original, verificación ELF
+y 22 invocaciones nativas de archivos. No se publicaron binarios.
+[Pasos del ensayo en el teléfono](PROBAR_ANDROID.md).
 
 Después: crear/dibujar/guardar/reabrir .aseprite con capas y frames;
 SAF, IME completo, ratón/teclado externos, pausa/restauración y mediciones
