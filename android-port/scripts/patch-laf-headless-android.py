@@ -64,6 +64,17 @@ def main():
         '} // namespace base',
         '} // namespace base\n#endif // LAF_LINUX',
         args.dry_run)
+    # C11 aligned_alloc is available in Bionic only from API 28. Keep
+    # the port's API 26 minimum using the compatible POSIX allocation/free.
+    replace_once(laf / "base/memory.cpp",
+        '  return _aligned_malloc(bytes, alignment);\n#else',
+        '  return _aligned_malloc(bytes, alignment);\n'
+        '#elif LAF_ANDROID\n'
+        '  void* mem = nullptr;\n'
+        '  if (posix_memalign(&mem, alignment, bytes) != 0)\n'
+        '    return nullptr;\n'
+        '  return mem;\n#else',
+        args.dry_run)
     p = laf / "os/common/event_queue.cpp"
     replace_once(p,
         '#if LAF_WINDOWS\n  #include "os/win/event_queue.h"',

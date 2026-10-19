@@ -25,6 +25,7 @@ ORIGINAL_FILES = [
     "laf/base/CMakeLists.txt",
     "laf/base/platform.h",
     "laf/base/platform_unix.cpp",
+    "laf/base/memory.cpp",
     "laf/os/CMakeLists.txt",
     "laf/os/common/event_queue.cpp",
     "laf/os/skia/skia_window.h",

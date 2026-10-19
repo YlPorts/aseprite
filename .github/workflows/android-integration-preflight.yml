@@ -99,11 +99,19 @@ jobs:
             -DENABLE_WEBSOCKET=OFF -DENABLE_TESTS=OFF -DENABLE_WEBP=OFF \
             -DLAF_BACKEND=none -DLAF_WITH_CLIP=OFF \
             -DLAF_WITH_EXAMPLES=OFF -DLAF_WITH_TESTS=OFF
+      - name: Exercise original LAF Android allocation path on host
+        run: |
+          c++ -std=c++17 -Wall -Wextra -Werror -DLAF_ANDROID=1 \
+            -I laf -I build/android-integration-preflight/laf \
+            android-port/tests/android_aligned_alloc_test.cpp \
+            laf/base/memory.cpp -o build/laf-android-preflight/android_aligned_alloc_test
+          build/laf-android-preflight/android_aligned_alloc_test
       - name: Cross-compile genuine LAF Android adapters (syntax only, no Skia)
         run: |
           CXX="$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang++"
           test -x "$CXX"
           for src in \
+            laf/base/memory.cpp \
             laf/os/android/key_state.cpp \
             laf/os/android/event_queue.cpp \
             laf/os/android/window.cpp \
