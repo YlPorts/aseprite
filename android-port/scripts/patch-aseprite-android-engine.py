@@ -35,6 +35,16 @@ def main():
         '#elif LAF_ANDROID\n\n  os << "Android";\n\n'
         '#else\n\n  // ----------------------------------------------------------------------\n  // Unix like',
         opts.dry_run)
+    replace_once(root/'src/app/fonts/font_path_unix.cpp',
+        '  q.push("~/.fonts");\n  q.push("/usr/local/share/fonts");\n  q.push("/usr/share/fonts");',
+        '#if LAF_ANDROID\n'
+        '  q.push("/system/fonts");\n'
+        '  q.push("/product/fonts");\n'
+        '  q.push("/system_ext/fonts");\n'
+        '  q.push("/vendor/fonts");\n'
+        '#else\n'
+        '  q.push("~/.fonts");\n  q.push("/usr/local/share/fonts");\n  q.push("/usr/share/fonts");\n'
+        '#endif',opts.dry_run)
     print('Original Aseprite Android entry target prepared; no APK generated')
 if __name__=='__main__':
     main()

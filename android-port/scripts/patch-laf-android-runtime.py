@@ -72,6 +72,19 @@ def main():
         '    );\n  }\n\n  void setTabletOptions(',
         '    );\n#endif\n  }\n\n  void setTabletOptions(',
         a.dry_run)
+    # RefEmpty() cannot supply an Android system/default typeface. Use the
+    # native m124 manager already built by target_os="android" instead.
+    fonts=laf/'text/skia_font_mgr.cpp'
+    update(fonts,
+        '#elif LAF_LINUX\n  #include "include/ports/SkFontMgr_fontconfig.h"',
+        '#elif LAF_ANDROID\n  #include "include/ports/SkFontMgr_android.h"\n'
+        '#elif LAF_LINUX\n  #include "include/ports/SkFontMgr_fontconfig.h"',
+        a.dry_run)
+    update(fonts,
+        '#elif LAF_LINUX\n  m_skFontMgr = SkFontMgr_New_FontConfig(nullptr);',
+        '#elif LAF_ANDROID\n  m_skFontMgr = SkFontMgr_New_Android(nullptr);\n'
+        '#elif LAF_LINUX\n  m_skFontMgr = SkFontMgr_New_FontConfig(nullptr);',
+        a.dry_run)
     print('Android LAF runtime overlay prepared. Full Skia/Activity compilation still required.')
 if __name__=='__main__':
     main()

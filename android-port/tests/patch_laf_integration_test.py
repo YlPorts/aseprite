@@ -22,6 +22,7 @@ ORIGINAL_FILES = [
     "CMakeLists.txt",
     "src/app/resource_finder.cpp",
     "src/updater/user_agent.cpp",
+    "src/app/fonts/font_path_unix.cpp",
     "laf/base/CMakeLists.txt",
     "laf/base/platform.h",
     "laf/base/platform_unix.cpp",
@@ -35,6 +36,7 @@ ORIGINAL_FILES = [
     "laf/os/skia/skia_surface.cpp",
     "laf/os/skia/skia_system.h",
     "laf/cmake/FindSkia.cmake",
+    "laf/text/skia_font_mgr.cpp",
 ]
 
 def original_files_are_present():
