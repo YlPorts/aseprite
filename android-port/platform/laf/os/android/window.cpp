@@ -25,7 +25,13 @@ int WindowAndroid::height() const {
   aseandroid::globalRasterWindow().dimensions(w,h);
   return h;
 }
-gfx::Size WindowAndroid::clientSize() const { return gfx::Size(width(),height()); }
+gfx::Size WindowAndroid::clientSize() const {
+  // Original SkiaWindow::width()/height() delegate to clientSize(). Calling
+  // those virtual methods here recurses before the first surface is created.
+  int w=0,h=0;
+  aseandroid::globalRasterWindow().dimensions(w,h);
+  return gfx::Size(w,h);
+}
 void WindowAndroid::setScale(int scale) {
   scale=std::max(1,std::min(16,scale));
   if(m_scale==scale) return;
