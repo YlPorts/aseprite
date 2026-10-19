@@ -9,7 +9,7 @@ AR="$(command -v llvm-ar)"
 READELF="$(command -v readelf)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-printf 'target_os = "android"\ntarget_cpu = "arm64"\n' > "$TMP/args.gn"
+printf 'target_os = "android"\ntarget_cpu = "arm64"\nis_trivial_abi = false\n' > "$TMP/args.gn"
 printf 'int original_skia_arch_probe(void) { return 7; }\n' > "$TMP/probe.c"
 "$CLANG" --target=aarch64-linux-gnu -c "$TMP/probe.c" -o "$TMP/arm64.o"
 "$CLANG" -c "$TMP/probe.c" -o "$TMP/host.o"
@@ -19,6 +19,17 @@ done
 export ASEPRITE_AR="$AR"
 export ASEPRITE_READELF="$READELF"
 bash "$AUDIT" "$TMP" >/dev/null
+sed -i 's/is_trivial_abi = false/is_trivial_abi = true/' "$TMP/args.gn"
+if bash "$AUDIT" "$TMP" >/dev/null 2>&1; then
+  echo "FAIL: incompatible Skia trivial_abi was accepted" >&2
+  exit 1
+fi
+sed -i '/is_trivial_abi/d' "$TMP/args.gn"
+if bash "$AUDIT" "$TMP" >/dev/null 2>&1; then
+  echo "FAIL: implicit Skia trivial_abi was accepted" >&2
+  exit 1
+fi
+printf 'target_os = "android"\ntarget_cpu = "arm64"\nis_trivial_abi = false\n' > "$TMP/args.gn"
 rm "$TMP/libskunicode.a"
 "$AR" rcs "$TMP/libskunicode.a" "$TMP/host.o"
 if bash "$AUDIT" "$TMP" >/dev/null 2>&1; then
@@ -27,12 +38,12 @@ if bash "$AUDIT" "$TMP" >/dev/null 2>&1; then
 fi
 rm "$TMP/libskunicode.a"
 "$AR" rcs "$TMP/libskunicode.a" "$TMP/arm64.o"
-printf 'target_os = "linux"\ntarget_cpu = "arm64"\n' > "$TMP/args.gn"
+printf 'target_os = "linux"\ntarget_cpu = "arm64"\nis_trivial_abi = false\n' > "$TMP/args.gn"
 if bash "$AUDIT" "$TMP" >/dev/null 2>&1; then
   echo "FAIL: Skia target_os linux was accepted as Android" >&2
   exit 1
 fi
-printf 'target_os = "android"\ntarget_cpu = "arm64"\n' > "$TMP/args.gn"
+printf 'target_os = "android"\ntarget_cpu = "arm64"\nis_trivial_abi = false\n' > "$TMP/args.gn"
 rm "$TMP/libskshaper.a"
 if bash "$AUDIT" "$TMP" >/dev/null 2>&1; then
   echo "FAIL: missing original skshaper archive was accepted" >&2

@@ -10,6 +10,10 @@ test -x "$READELF"
 test -x "$AR"
 grep -Eq '^[[:space:]]*target_os[[:space:]]*=[[:space:]]*"android"' "$LIB/args.gn"
 grep -Eq '^[[:space:]]*target_cpu[[:space:]]*=[[:space:]]*"arm64"' "$LIB/args.gn"
+grep -Eq '^[[:space:]]*is_trivial_abi[[:space:]]*=[[:space:]]*false([[:space:]]|$)' "$LIB/args.gn" || {
+  echo "INCOMPATIBLE ABI: original LAF requires explicit is_trivial_abi=false in Skia args.gn" >&2
+  exit 2
+}
 echo "GN source target: Android arm64"
 echo "Compiled static archives (including third-party dependencies):"
 find "$LIB" -maxdepth 8 -type f -name '*.a' -printf '%P\n' | sort

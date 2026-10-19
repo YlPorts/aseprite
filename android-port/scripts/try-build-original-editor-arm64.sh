@@ -27,14 +27,7 @@ for archive in libjpeg.a libfreetype2.a libharfbuzz.a libwebp.a; do
     exit 2
   fi
 done
-if ! grep -Eq '^[[:space:]]*target_os[[:space:]]*=[[:space:]]*"android"([[:space:]]|$)' "$LIBS/args.gn"; then
-  echo "ERROR: provided Skia build is not targeting Android" >&2
-  exit 2
-fi
-if ! grep -Eq '^[[:space:]]*target_cpu[[:space:]]*=[[:space:]]*"arm64"([[:space:]]|$)' "$LIBS/args.gn"; then
-  echo "ERROR: provided Skia build is not ARM64" >&2
-  exit 2
-fi
+ANDROID_NDK_HOME="$NDK" bash "$ROOT/android-port/scripts/audit-original-skia-arm64.sh" "$LIBS"
 
 python3 android-port/tests/patch_laf_integration_test.py
 python3 android-port/scripts/patch-laf-headless-android.py .
