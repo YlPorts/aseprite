@@ -85,6 +85,8 @@ def main() -> None:
     p.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
     p.add_argument("--engine", type=Path, required=True)
     p.add_argument("--destination", type=Path)
+    p.add_argument("--verify-only", action="store_true",
+                   help="Inspect the linked ELF without copying any assets or library")
     args = p.parse_args()
     root = args.root.resolve()
     original_data = root / "data"
@@ -92,12 +94,16 @@ def main() -> None:
     target_data = destination / "assets/data"
     native_out = destination / "jniLibs/arm64-v8a/libaseprite.so"
 
-    needed = ("gui.xml", "fonts", "icons")
-    if not original_data.is_dir() or any(not (original_data / item).exists() for item in needed):
-        raise ValueError("Missing original Aseprite data/gui.xml, fonts or icons")
     if not args.engine.is_file():
         raise ValueError("Missing original engine output libaseprite.so")
     verify_aarch64_shared_lib(args.engine)
+    if args.verify_only:
+        print(f"Verified AArch64 ET_DYN, seven defined JNI exports and native dependencies: {args.engine}")
+        return
+
+    needed = ("gui.xml", "fonts", "icons")
+    if not original_data.is_dir() or any(not (original_data / item).exists() for item in needed):
+        raise ValueError("Missing original Aseprite data/gui.xml, fonts or icons")
 
     target_data.parent.mkdir(parents=True, exist_ok=True)
     native_out.parent.mkdir(parents=True, exist_ok=True)

@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 
 script = Path(__file__).resolve().parents[1] / "scripts/stage-authentic-android-assets.py"
@@ -42,6 +43,10 @@ with tempfile.TemporaryDirectory() as temp:
         for name in module.REQUIRED_JNI) + "\n")
     compile_fixture(clang, source, so, "aarch64-linux-gnu")
     module.verify_aarch64_shared_lib(so)
+    subprocess.run([sys.executable, str(script), "--root", str(root),
+                    "--engine", str(so), "--verify-only"], check=True,
+                   stdout=subprocess.PIPE)
+    assert not (root / "android-port").exists(), "Verification must not stage fixtures"
 
     absent = root / "without_ime.c"
     absent.write_text("\n".join(

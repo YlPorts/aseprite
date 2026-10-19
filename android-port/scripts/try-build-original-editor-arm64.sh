@@ -90,30 +90,11 @@ if [[ -z "$OUTPUT" || ! -s "$OUTPUT" ]]; then
   echo "ERROR: authentic original editor did not produce libaseprite.so" >&2
   exit 3
 fi
-READELF="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
-if [[ ! -x "$READELF" ]] || ! "$READELF" -h "$OUTPUT" | grep -q "Machine:.*AArch64"; then
-  echo "ERROR: linked library is not a real AArch64 ELF shared object" >&2
-  exit 3
-fi
-# Java calls these exact functions through System.loadLibrary("aseprite").
-# Check the real ELF dynamic symbol table, not just file names or strings.
-for symbol in \
-  Java_com_ylports_aseprite_AsepriteActivity_nativeStartOriginalEditor \
-  Java_com_ylports_aseprite_AsepriteActivity_nativeAttachSurface \
-  Java_com_ylports_aseprite_AsepriteActivity_nativeRegisterImeBridge \
-  Java_com_ylports_aseprite_AsepriteActivity_nativeCommitText \
-  Java_com_ylports_aseprite_AsepriteActivity_nativeTouch \
-  Java_com_ylports_aseprite_AsepriteActivity_nativeKey \
-  Java_com_ylports_aseprite_AsepriteActivity_nativeAppFocus
-do
-  if ! "$READELF" --dyn-syms --wide "$OUTPUT" | grep -Eq "[[:space:]]$symbol$"; then
-    echo "ERROR: required original Android JNI entrypoint is not exported: $symbol" >&2
-    exit 3
-  fi
-done
-if "$READELF" -d "$OUTPUT" | grep -Fq 'Shared library: [libc++_shared.so]'; then
-  echo "ERROR: editor unexpectedly depends on libc++_shared.so; use -DANDROID_STL=c++_static or package the runtime" >&2
-  exit 3
-fi
+# Reuse the staging gate's actual ELF parser, including defined (not UND)
+# JNI symbols. It consumes complete readelf output, avoiding SIGPIPE false
+# failures from grep -q on a large original editor dynamic symbol table.
+python3 "$ROOT/android-port/scripts/stage-authentic-android-assets.py" \
+  --root "$ROOT" --engine "$OUTPUT" --verify-only
+sha256sum "$OUTPUT"
 echo "Original Aseprite Android AArch64 shared-library linked with all seven JNI entrypoints: $OUTPUT."
 echo "No APK was packaged, signed, uploaded, or distributed."
