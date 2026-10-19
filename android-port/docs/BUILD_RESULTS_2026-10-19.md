@@ -1,5 +1,9 @@
 # Informe verificable — port Android ARM64, 19 de octubre de 2026
 
+Este informe registra la primera candidata. Después, el usuario confirmó
+su arranque mediante capturas de Home y un documento visible. La adaptación
+posterior se registra en [la fase vertical](PORTRAIT_RESULTS_2026-10-19.md).
+
 ## Resultado y límite
 
 **COMPILADO:** el Aseprite C++ original y sus bibliotecas originales se

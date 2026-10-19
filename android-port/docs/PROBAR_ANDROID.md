@@ -21,6 +21,10 @@ usa el [workflow en un repositorio privado](BUILD_ANDROID.md).
 La versión anterior `0.1.0-dev` tenía SHA-256
 `c32b76c6b94eeac87582ceb23ac51ccf708d7b33378d859e88095977525663cc`.
 La nueva versión es `0.1.1-portrait-dev` (versionCode 2).
+Tiene 10.425.571 bytes y SHA-256
+`51e7c3b3e0affcfdebbd2a3505b574b88f00c3d19097734726d53f487908a291`.
+Se verificó que su certificado coincide con el de la candidata anterior,
+para instalarla como actualización conservando los datos privados.
 
 ## Comprobar por orden
 
@@ -62,3 +66,5 @@ adb logcat -s AsepriteAndroid AndroidRuntime libc DEBUG
 El [informe verificable](BUILD_RESULTS_2026-10-19.md) separa lo compilado,
 lo probado y lo pendiente: herramientas interactivas, IME completo,
 SAF, ciclo de vida, rendimiento y uso estable en el Galaxy A15.
+La [actualización vertical](PORTRAIT_RESULTS_2026-10-19.md) contiene los
+resultados de la segunda candidata.

@@ -3,8 +3,11 @@
 This directory contains Android platform code for the **original C++ Aseprite**.
 The genuine Aseprite app_main(), app-lib, LAF and Skia now link into an
 Android ARM64 libaseprite.so. The existing Gradle project has produced a
-signed development APK locally with original resources. **Startup and editing
-on Android remain unverified.** The public repository publishes no binaries.
+signed development APK locally with original resources. The user confirmed
+the first Android GUI startup with screenshots. A larger UI, safe insets and
+portrait support are now compiled into the next private candidate; its device
+verification and complete editing tests remain pending. The public repository
+publishes no binaries. See the [portrait update](docs/PORTRAIT_RESULTS_2026-10-19.md).
 
 ## Verified locally
 

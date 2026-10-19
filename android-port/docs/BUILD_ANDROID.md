@@ -3,7 +3,9 @@
 Rama: `android-native-port-wip`. No se modifica `main`.
 El motor original **ya se enlazó localmente y en GitHub Actions** como `libaseprite.so`, y el
 proyecto Gradle existente produjo una APK de desarrollo firmada.
-**El arranque de la interfaz y la edición en Android todavía no están probados.**
+El usuario confirmó el arranque de la primera APK con capturas de la interfaz
+y un documento visible. La edición completa y la nueva adaptación vertical
+siguen pendientes de comprobación en el teléfono.
 Consulta [STATUS.md](STATUS.md) y el [informe verificable](BUILD_RESULTS_2026-10-19.md).
 
 ## Compilar en GitHub Actions y descargar desde el móvil

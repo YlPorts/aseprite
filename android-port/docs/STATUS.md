@@ -14,7 +14,7 @@ Referencia inicial inspeccionada: `f3c8f1ed646059a15235018be0668fd686742119`.
 | Motor Android en modo batch: archivos/capas/frames y spritesheets | **PROBADO** localmente y en Actions, bajo QEMU con Bionic Android 16; sin interfaz |
 | Primera interfaz original y documento visible en Android | **PROBADO POR EL USUARIO**: capturas de Home y Sprite-0001 |
 | Dibujo y guardado desde la GUI | **PENDIENTE** de comprobación completa |
-| Márgenes seguros, escala táctil y orientación vertical | **IMPLEMENTADO** tras las capturas; nueva compilación en verificación |
+| Márgenes seguros, escala táctil y orientación vertical | **IMPLEMENTADO y COMPILADO**; geometría/paquete **PROBADOS**, ergonomía pendiente en el Galaxy |
 | Galaxy A15, Android 16, táctil/IME/ciclo de vida/rendimiento | **PENDIENTE** de pruebas físicas |
 
 El usuario confirmó que la primera candidata carga y envió capturas de
@@ -63,6 +63,8 @@ el editor al rotar. Se conserva el mismo editor C++, Skia y sus píxeles enteros
 El [workflow completo 39184312685](https://github.com/YlPorts/aseprite/actions/runs/39184312685)
 terminó **success** para `da3f22070`: Skia, motor original, verificación ELF
 y 22 invocaciones nativas de archivos. No se publicaron binarios.
+[La fase vertical](PORTRAIT_RESULTS_2026-10-19.md) registra la nueva APK
+`0.1.1-portrait-dev`, su hash, los cambios y sus workflows.
 [Pasos del ensayo en el teléfono](PROBAR_ANDROID.md).
 
 Después: crear/dibujar/guardar/reabrir .aseprite con capas y frames;
