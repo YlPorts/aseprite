@@ -56,6 +56,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build clang python3 git cmake pkg-config \
+            qemu-user e2fsprogs \
             libx11-dev libxcursor-dev libxi-dev libxrandr-dev libfontconfig1-dev \
             libfreetype-dev libharfbuzz-dev libpng-dev zlib1g-dev
       - name: Clone authentic Skia m124
@@ -122,6 +123,16 @@ jobs:
             exit "$result"
           fi
           echo 'Original Aseprite ARM64 shared-library linkage completed (APK/device testing still required).' >> "$GITHUB_STEP_SUMMARY"
+      - name: Execute genuine Android engine file operations with SDK Bionic
+        run: |
+          sdkmanager --sdk_root="$ANDROID_HOME" --install 'system-images;android-36;default;arm64-v8a'
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
+          # Run the exact linked Android engine with the real Android 16
+          # loader and platform libraries. This is CLI, not a GUI emulator.
+          python3 android-port/scripts/test-original-editor-android-batch.py \
+            --engine build/aseprite-gui-android-arm64/lib/libaseprite.so \
+            --system-image "$ANDROID_HOME/system-images/android-36/default/arm64-v8a/system.img"
+          echo 'Android native CLI passed save/reopen, layers/frames/cels and spritesheet equivalence. Activity/GUI/device tests still pending.' >> "$GITHUB_STEP_SUMMARY"
       - name: Set up Java for personal-use Android packaging
         if: ${{ inputs.build_private_apk && github.event.repository.private }}
         uses: actions/setup-java@v4
