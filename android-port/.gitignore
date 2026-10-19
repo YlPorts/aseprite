@@ -1,0 +1,10 @@
+# Generated native resources and private build outputs must stay local.
+.gradle/
+**/build/
+**/__pycache__/
+local.properties
+*.apk
+*.aab
+app/src/main/jniLibs/
+app/src/main/assets/data/
+app/src/main/res/drawable/aseprite_icon.png
