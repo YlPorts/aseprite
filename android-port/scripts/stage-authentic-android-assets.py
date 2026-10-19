@@ -101,7 +101,7 @@ def main() -> None:
         print(f"Verified AArch64 ET_DYN, seven defined JNI exports and native dependencies: {args.engine}")
         return
 
-    needed = ("gui.xml", "fonts", "icons")
+    needed = ("gui.xml", "fonts", "icons/ase256.png")
     if not original_data.is_dir() or any(not (original_data / item).exists() for item in needed):
         raise ValueError("Missing original Aseprite data/gui.xml, fonts or icons")
 
@@ -121,6 +121,10 @@ def main() -> None:
             shutil.rmtree(target_data)
         temporary_data.replace(target_data)
         temporary_native.replace(native_out)
+        # Reuse the original launcher artwork; no replacement application UI.
+        icon = destination / "res/drawable/aseprite_icon.png"
+        icon.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(original_data / "icons/ase256.png", icon)
     finally:
         if temporary_data.exists():
             shutil.rmtree(temporary_data)

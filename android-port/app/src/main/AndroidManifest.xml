@@ -1,7 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <application android:label="Aseprite" android:hasCode="true"
       android:extractNativeLibs="true" android:usesCleartextTraffic="false"
-      android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen">
+      android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen"
+      android:icon="@drawable/aseprite_icon">
     <activity android:name="com.ylports.aseprite.AsepriteActivity"
       android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|density|uiMode"
       android:screenOrientation="landscape" android:exported="true"
