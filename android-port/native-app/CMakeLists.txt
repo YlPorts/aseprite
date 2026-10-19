@@ -15,6 +15,7 @@ endif()
 # project. Re-entering android-port/CMakeLists.txt would run another project()
 # and unexpectedly change the top-level CMake project context.
 # Raster code is compiled ONCE inside laf-os by the guarded LAF overlay.
+target_include_directories(app-lib PRIVATE ${CMAKE_SOURCE_DIR}/android-port/src/android)
 add_library(aseprite-android-touch STATIC
   ${CMAKE_SOURCE_DIR}/android-port/src/android/touch_router.cpp
   ${CMAKE_SOURCE_DIR}/android-port/src/android/native_motion.cpp)

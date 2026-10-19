@@ -5,7 +5,7 @@
       android:icon="@drawable/aseprite_icon">
     <activity android:name="com.ylports.aseprite.AsepriteActivity"
       android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|density|uiMode"
-      android:screenOrientation="landscape" android:exported="true"
+      android:screenOrientation="fullUser" android:exported="true"
       android:windowSoftInputMode="adjustResize|stateAlwaysHidden">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>

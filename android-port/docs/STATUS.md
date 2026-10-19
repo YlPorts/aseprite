@@ -12,14 +12,16 @@ Referencia inicial inspeccionada: `f3c8f1ed646059a15235018be0668fd686742119`.
 | libaseprite.so original, --no-undefined | **COMPILADO**, ELF AArch64 y siete exportaciones JNI **PROBADAS** |
 | Proyecto Gradle existente y recursos originales | **COMPILADO** como APK privada local, firma y contenido **PROBADOS** |
 | Motor Android en modo batch: archivos/capas/frames y spritesheets | **PROBADO** localmente y en Actions, bajo QEMU con Bionic Android 16; sin interfaz |
-| Interfaz original en Android, dibujo y guardado desde la GUI | **PENDIENTE** de ejecución real |
+| Primera interfaz original y documento visible en Android | **PROBADO POR EL USUARIO**: capturas de Home y Sprite-0001 |
+| Dibujo y guardado desde la GUI | **PENDIENTE** de comprobación completa |
+| Márgenes seguros, escala táctil y orientación vertical | **IMPLEMENTADO** tras las capturas; nueva compilación en verificación |
 | Galaxy A15, Android 16, táctil/IME/ciclo de vida/rendimiento | **PENDIENTE** de pruebas físicas |
 
-La APK es de desarrollo, **sin arranque verificado**. No hay una release
-funcional ni binarios publicados. Compilar y validar el paquete no demuestra
-que las herramientas o la interfaz funcionen en Android.
-Es una candidata para que el usuario pruebe el primer arranque en su Galaxy;
-no necesita compilar en el teléfono ni realizar pruebas en un emulador.
+El usuario confirmó que la primera candidata carga y envió capturas de
+la interfaz original con un documento visible. Detectó controles pequeños
+y bordes inaccesibles. Esa evidencia acredita el primer arranque de esa
+APK, no el funcionamiento de todas las herramientas ni de la siguiente APK.
+No necesita compilar en el teléfono ni realizar pruebas en un emulador.
 
 ## Implementación conservada
 
@@ -53,11 +55,10 @@ Las pruebas de módulos y compilación no certifican esos flujos completos.
 
 ## Próxima prioridad
 
-Obtener el **primer arranque gráfico real** y su logcat en un sistema
-Android ARM64. El usuario probará la candidata en su Galaxy A15.
-Los intentos de emulador se detuvieron sin llegar a instalar la APK.
-QEMU user-mode permitió probar el motor Android en modo batch,
-pero no se ha mostrado ni probado la primera pantalla.
+Entregar y verificar en el Galaxy la adaptación vertical: controles más
+grandes, márgenes para cámara/gestos/barras del sistema y opciones originales
+en filas. La orientación sigue las preferencias de Android sin reiniciar
+el editor al rotar. Se conserva el mismo editor C++, Skia y sus píxeles enteros.
 
 El [workflow completo 39184312685](https://github.com/YlPorts/aseprite/actions/runs/39184312685)
 terminó **success** para `da3f22070`: Skia, motor original, verificación ELF

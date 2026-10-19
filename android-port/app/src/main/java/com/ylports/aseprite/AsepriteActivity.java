@@ -1,13 +1,17 @@
 package com.ylports.aseprite;
 
 import android.app.Activity;
-import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
+import android.graphics.Insets;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.WindowInsets;
+import android.widget.FrameLayout;
 import android.content.Context;
 import android.text.InputType;
 import android.view.inputmethod.BaseInputConnection;
@@ -21,10 +25,11 @@ import java.io.IOException;
 
 /** Native Android host of the ORIGINAL Aseprite editor; never a substitute UI. */
 public final class AsepriteActivity extends Activity implements SurfaceHolder.Callback {
-    private static final int IMMERSIVE=0x00000002|0x00000004|0x00001000|0x00000200|0x00000400;
+    private static final int IMMERSIVE=0x00000002|0x00000004|0x00001000|0x00000100|0x00000200|0x00000400;
     static { System.loadLibrary("aseprite"); }
     private static volatile AsepriteActivity activeActivity;
     private SurfaceView canvas;
+    private FrameLayout safeArea;
 
     // The original C++ LAF requests/hides text input. All Java UI work
     // stays on the Android main thread, not on Aseprite's C++ render thread.
@@ -90,7 +95,7 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
 
     private static native void nativeRegisterImeBridge();
     private static native void nativeCommitText(int codepoint);
-    private static native void nativeAttachSurface(Surface surface);
+    private static native void nativeAttachSurface(Surface surface,int uiScale);
     private static native boolean nativeStartOriginalEditor(String filesRoot);
     private static native void nativeTouch(int action,int pointerIndex,int[] ids,
                                             float[] xy,float[] pressure,int[] tools);
@@ -99,7 +104,7 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        if(Build.VERSION.SDK_INT>=30) getWindow().setDecorFitsSystemWindows(false);
         getWindow().getDecorView().setSystemUiVisibility(IMMERSIVE);
         activeActivity=this;
         nativeRegisterImeBridge();
@@ -124,20 +129,78 @@ public final class AsepriteActivity extends Activity implements SurfaceHolder.Ca
             nativeTouch(event.getActionMasked(),event.getActionIndex(),ids,xy,pressure,tools);
             return true;
         });
-        setContentView(canvas);
+        safeArea=new FrameLayout(this);
+        safeArea.setBackgroundColor(android.graphics.Color.BLACK);
+        safeArea.addView(canvas,new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,FrameLayout.LayoutParams.MATCH_PARENT));
+        // The SurfaceView itself occupies only the safe rectangle. Rendering
+        // and MotionEvent coordinates therefore share exactly the same origin;
+        // JNI must not subtract these Android insets a second time.
+        safeArea.setOnApplyWindowInsetsListener((view,insets)->{
+            int left,top,right,bottom;
+            if(Build.VERSION.SDK_INT>=30){
+                Insets bars=insets.getInsetsIgnoringVisibility(
+                    WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+                Insets gestures=insets.getInsets(WindowInsets.Type.systemGestures());
+                Insets ime=insets.getInsets(WindowInsets.Type.ime());
+                left=Math.max(bars.left,gestures.left);
+                top=Math.max(bars.top,gestures.top);
+                right=Math.max(bars.right,gestures.right);
+                bottom=Math.max(Math.max(bars.bottom,gestures.bottom),ime.bottom);
+            }else{
+                left=Math.max(insets.getStableInsetLeft(),insets.getSystemWindowInsetLeft());
+                top=Math.max(insets.getStableInsetTop(),insets.getSystemWindowInsetTop());
+                right=Math.max(insets.getStableInsetRight(),insets.getSystemWindowInsetRight());
+                bottom=Math.max(insets.getStableInsetBottom(),insets.getSystemWindowInsetBottom());
+                if(Build.VERSION.SDK_INT>=28 && insets.getDisplayCutout()!=null){
+                    left=Math.max(left,insets.getDisplayCutout().getSafeInsetLeft());
+                    top=Math.max(top,insets.getDisplayCutout().getSafeInsetTop());
+                    right=Math.max(right,insets.getDisplayCutout().getSafeInsetRight());
+                    bottom=Math.max(bottom,insets.getDisplayCutout().getSafeInsetBottom());
+                }
+                if(Build.VERSION.SDK_INT>=29){
+                    Insets gestures=insets.getSystemGestureInsets();
+                    left=Math.max(left,gestures.left);
+                    top=Math.max(top,gestures.top);
+                    right=Math.max(right,gestures.right);
+                    bottom=Math.max(bottom,gestures.bottom);
+                }
+            }
+            float density=getResources().getDisplayMetrics().density;
+            view.setPadding(ViewportPolicy.edgePadding(density,left),
+                ViewportPolicy.edgePadding(density,top),
+                ViewportPolicy.edgePadding(density,right),
+                ViewportPolicy.edgePadding(density,bottom));
+            return insets;
+        });
+        setContentView(safeArea);
+        safeArea.requestApplyInsets();
+    }
+
+    private void attachEditorSurface(Surface surface){
+        int width=canvas.getWidth();
+        if(width<=0) width=getResources().getDisplayMetrics().widthPixels;
+        int scale=ViewportPolicy.pixelScale(width,getResources().getDisplayMetrics().density);
+        nativeAttachSurface(surface,scale);
     }
 
     @Override public void surfaceCreated(SurfaceHolder holder) {
-        nativeAttachSurface(holder.getSurface());
+        attachEditorSurface(holder.getSurface());
         prepareOriginalResources();
         canvas.requestFocus();
     }
     @Override public void surfaceChanged(SurfaceHolder holder,int format,int width,int height) {
-        nativeAttachSurface(holder.getSurface());
+        attachEditorSurface(holder.getSurface());
         maybeStartEngine();
     }
     @Override public void surfaceDestroyed(SurfaceHolder holder) {
-        nativeAttachSurface(null);
+        attachEditorSurface(null);
+    }
+    @Override public void onConfigurationChanged(Configuration configuration){
+        super.onConfigurationChanged(configuration);
+        safeArea.requestApplyInsets();
+        // configChanges keeps the same native editor/documents alive. Android
+        // delivers the new SurfaceView dimensions through surfaceChanged().
     }
     private void maybeStartEngine(){
         if (assetsReady && !nativeStarted && canvas.getHolder().getSurface().isValid()) {

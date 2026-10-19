@@ -1,6 +1,7 @@
 #include "android_raster_window.h"
 #ifdef __ANDROID__
 #include <android/native_window.h>
+#include <algorithm>
 #include <limits>
 namespace aseandroid {
 AndroidRasterWindow::~AndroidRasterWindow(){setSurface(nullptr);}
@@ -14,8 +15,13 @@ ANativeWindow* AndroidRasterWindow::nativeHandle() const {
   std::lock_guard<std::mutex> lock(mutex_);
   return surface_;
 }
-void AndroidRasterWindow::setSurface(ANativeWindow* surface) {
+int AndroidRasterWindow::preferredScale() const {
   std::lock_guard<std::mutex> lock(mutex_);
+  return preferredScale_;
+}
+void AndroidRasterWindow::setSurface(ANativeWindow* surface,int preferredScale) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  preferredScale_=std::clamp(preferredScale,1,16);
   if (surface==surface_) return;
   if (surface) {
     ANativeWindow_acquire(surface);

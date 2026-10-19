@@ -8,7 +8,8 @@
 #include <algorithm>
 namespace os {
 WindowAndroid::WindowAndroid(const WindowSpec& spec)
-  : m_scale(std::max(1,std::min(16,spec.scale()))) { }
+  : m_scale(std::max(std::clamp(spec.scale(),1,16),
+                    aseandroid::globalRasterWindow().preferredScale())) { }
 gfx::Rect WindowAndroid::contentRect() const {
   return gfx::Rect(0,0,width(),height());
 }
@@ -33,7 +34,10 @@ gfx::Size WindowAndroid::clientSize() const {
   return gfx::Size(w,h);
 }
 void WindowAndroid::setScale(int scale) {
-  scale=std::max(1,std::min(16,scale));
+  // Desktop preferences saved by an earlier APK must not restore tiny UI.
+  // The original screen/UI scaling still handles all layout and painting.
+  scale=std::max(std::clamp(scale,1,16),
+                 aseandroid::globalRasterWindow().preferredScale());
   if(m_scale==scale) return;
   m_scale=scale;
   if(width()>0 && height()>0) onResize(clientSize());
@@ -71,6 +75,9 @@ Window::NativeHandle WindowAndroid::nativeHandle() const {
 }
 void WindowAndroid::notifySurfaceChanged() {
   if(width()>0 && height()>0) {
+    // Rotation/resize can change the density-based width limit. Assign before
+    // the single original resize callback, on Aseprite's own UI thread.
+    m_scale=aseandroid::globalRasterWindow().preferredScale();
     onResize(clientSize());
     // Repaint an existing editor after Android recreates its SurfaceView,
     // even if no sprite pixels changed while the screen was detached.

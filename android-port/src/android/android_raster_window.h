@@ -7,7 +7,8 @@ namespace aseandroid {
 class AndroidRasterWindow {
 public:
   ~AndroidRasterWindow();
-  void setSurface(ANativeWindow* surface);
+  void setSurface(ANativeWindow* surface,int preferredScale=1);
+  int preferredScale() const;
   bool present(const ReadPixels& pixels,int uiScale);
   bool hasSurface() const;
   void dimensions(int& width,int& height) const;
@@ -15,6 +16,7 @@ public:
 private:
   mutable std::mutex mutex_;
   ANativeWindow* surface_=nullptr; // acquired reference
+  int preferredScale_=1;
 };
 AndroidRasterWindow& globalRasterWindow();
 }

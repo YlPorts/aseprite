@@ -29,6 +29,9 @@ assert '".installing"' in java and "temporary.renameTo(dest)" in java
 assert "out.getFD().sync();" in java
 assert "temporary.delete();" in java
 assert "return dispatched ? JNI_TRUE : JNI_FALSE;" in jni
+assert 'nativeAttachSurface(Surface surface,int uiScale)' in java
+assert 'JNIEnv* env,jclass,jobject surface,jint uiScale)' in jni
+assert 'setSurface(native,uiScale)' in jni
 assert "app_main(1,argv)" in jni, "Must launch original Aseprite app_main"
 assert "AsepriteAndroid" in jni and "Original editor app_main exited with code" in jni
 assert "dynamic_cast<os::WindowAndroid*>" not in jni

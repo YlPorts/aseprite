@@ -53,5 +53,21 @@ int main() {
   assert(blitNearest({rgba,1,1,4,PixelOrder::RGBA},
                      {out,1,1,4},1,{0,0,1,1}));
   assert(out[0]==20 && out[1]==30 && out[2]==40 && out[3]==255);
+  // Phone UI scales: odd safe-area dimensions leave only neutral remainder
+  // pixels. Each original pixel still becomes one uniform integer block.
+  for(int scale:{4,5}) {
+    const int width=2*scale+3,height=2*scale+5,stride=(width+2)*4;
+    std::vector<uint8_t> phone(stride*height,0xcd);
+    assert(blitNearest(a,{phone.data(),width,height,stride},scale,{0,0,width,height}));
+    const auto viewport=rasterViewport(2,2,width,height,scale);
+    for(int sy=0;sy<2;++sy) for(int sx=0;sx<2;++sx)
+      for(int by=0;by<scale;++by) for(int bx=0;bx<scale;++bx) {
+        const int offset=(viewport.y+sy*scale+by)*stride+(viewport.x+sx*scale+bx)*4;
+        const int expected=sy*12+sx*4;
+        assert(phone[offset]==src[expected+2] && phone[offset+1]==src[expected+1] &&
+               phone[offset+2]==src[expected] && phone[offset+3]==255);
+      }
+    for(int y=0;y<height;++y) assert(phone[y*stride+width*4]==0xcd);
+  }
   std::cout << "PASS: nearest neighbor, letterbox, BGRA/RGBA, stride, clipping\n";
 }

@@ -147,9 +147,9 @@ Java_com_ylports_aseprite_AsepriteActivity_nativeCommitText(
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_ylports_aseprite_AsepriteActivity_nativeAttachSurface(
-    JNIEnv* env,jclass,jobject surface) {
+    JNIEnv* env,jclass,jobject surface,jint uiScale) {
   ANativeWindow* native=surface?ANativeWindow_fromSurface(env,surface):nullptr;
-  aseandroid::globalRasterWindow().setSurface(native);
+  aseandroid::globalRasterWindow().setSurface(native,uiScale);
   if(native) ANativeWindow_release(native);
   // SurfaceView may be destroyed without onPause (resize/recreation).
   // End active strokes before the buffer disappears so the original editor

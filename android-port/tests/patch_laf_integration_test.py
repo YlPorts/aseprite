@@ -23,6 +23,10 @@ ORIGINAL_FILES = [
     "src/app/resource_finder.cpp",
     "src/updater/user_agent.cpp",
     "src/app/fonts/font_path_unix.cpp",
+    "src/app/ui/context_bar.h",
+    "src/app/ui/context_bar.cpp",
+    "src/app/ui/main_window.cpp",
+    "src/ui/manager.cpp",
     "laf/base/CMakeLists.txt",
     "laf/base/platform.h",
     "laf/base/platform_unix.cpp",
@@ -112,6 +116,9 @@ def verify(source_root):
     assert "androidRegisterWindow(AddRef(this));" in main
     assert "ASEPRITE_ANDROID_GUI" in engine
     assert "ASEPRITE_ANDROID_DATA_DIR" in source
+    context=(source_root / "src/app/ui/context_bar.cpp").read_text()
+    assert 'aseandroid::flowRows(' in context
+    assert 'fit_android_window(window, new_pos, bounds)' in (source_root / "src/ui/manager.cpp").read_text()
     assert (source_root / "laf/os/android/window.h").is_file()
     assert (source_root / "laf/os/android/system.h").is_file()
 
