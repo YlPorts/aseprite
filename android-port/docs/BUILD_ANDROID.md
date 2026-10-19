@@ -1,137 +1,145 @@
-# Original Aseprite Android: native build integration (experimental)
+# Compilación del Aseprite original para Android ARM64
 
-**This is NOT an installable application yet.** The original C++ Aseprite GUI
-must compile and link with Android-built **Skia m124**, the pinned laf submodule,
-and its own asset directory. No substitution of editors is permitted.
+Rama: `android-native-port-wip`. No se modifica `main`.
+El motor original **ya se enlazó localmente** como `libaseprite.so`, y el
+proyecto Gradle existente produjo una APK de desarrollo firmada.
+**El arranque de la interfaz y la edición en Android todavía no están probados.**
+Consulta [STATUS.md](STATUS.md) y el [informe verificable](BUILD_RESULTS_2026-10-19.md).
 
-## Sources and patch order
+## Compilar y obtener una APK privada desde el móvil
 
-Use `YlPorts/aseprite`, branch `android-native-port-wip`. Clone recursively
-in a private development environment. In the source root:
+Este repositorio es público. Su workflow público compila y verifica el motor,
+pero **no sube bibliotecas ni APKs**. Para uso personal, respetando la licencia
+original de Aseprite:
+
+1. En GitHub, crea un repositorio **privado independiente** mediante
+   [Import a repository](https://github.com/new/import), usando como origen
+   `https://github.com/YlPorts/aseprite`. Un fork público no puede hacerse
+   privado independientemente de su red de forks.
+2. Confirma que la rama `android-native-port-wip` se importó completa, y
+   establécela como rama predeterminada **del nuevo repositorio privado**.
+   Esto permite mostrar su `workflow_dispatch` en la pestaña Actions.
+3. Habilita Actions en ese repositorio privado. Abre **Android ARM64 original
+   Skia and Aseprite link (experimental)** y pulsa **Run workflow** sobre
+   `android-native-port-wip`, activando `build_private_apk`.
+4. Espera al resultado completo. Se compilan Skia, el generador Linux,
+   LAF, las bibliotecas originales requeridas y `libaseprite.so`.
+   Después se verifica el ELF y se ejecutan pruebas nativas de archivos con
+   QEMU y las bibliotecas reales de Android 16. Finalmente se copian los
+   recursos originales, se ejecuta Gradle y se inspeccionan el contenido y
+   la firma de la APK.
+5. Descarga el artefacto privado
+   `aseprite-arm64-development-RUNTIME-UNVERIFIED` antes de que expire
+   (3 días). Contiene `app-debug.apk`, para pruebas personales.
+
+Activar esa opción en un repositorio público falla antes de compilar.
+No se crea una release ni se publica una APK. La firma es de depuración;
+una nueva ejecución en otro runner puede usar otra clave, por lo que no
+se garantiza actualizar una instalación anterior conservando sus datos.
+Respalda tus documentos antes de sustituir una instalación.
+
+## Requisitos y revisiones
+
+- Checkout recursivo de esta rama: `git submodule update --init --recursive`.
+- LAF original: `500768cccc6447e3b7816bedbfcb378a5c5222e5`.
+- Skia original, rama `aseprite-m124`:
+  `08a5439a6be726021c1c1905d23ce298a3edc5e4`.
+- NDK r27c `27.2.12479018`, ABI `arm64-v8a`, API mínima 26.
+- CMake 3.20 o posterior, Ninja, Python 3, compilador C++ para Linux y
+  cabeceras X11 requeridas al configurar el generador original en el host.
+- Para empaquetar: JDK 17 o 21, Gradle 8.9, SDK Android 35 y Build Tools 35.
+
+El [workflow existente](../../.github/workflows/android-skia-arm64-experimental.yml)
+contiene los comandos completos para sincronizar dependencias y generar GN.
+Usa `build/skia/bin/gn`, obtenido por los scripts de la revisión original,
+sin pasar por el wrapper de `depot_tools`.
+
+La configuración es `target_os="android"`, `target_cpu="arm64"`,
+`ndk_api=26`, **`is_trivial_abi=false`**, raster CPU, GPU/GL/Graphite desactivados, y dependencias
+originales de Skia, incluidos FreeType, HarfBuzz y Unicode. Construye:
 
 ```sh
-python3 android-port/scripts/patch-laf-headless-android.py .
-python3 android-port/scripts/patch-laf-android-raster.py .
-python3 android-port/scripts/patch-laf-android-runtime.py .
-python3 android-port/scripts/patch-aseprite-android-engine.py .
+ninja -C build/skia/out/Release-Android-arm64 -j 2 skia skshaper skunicode
+export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
+bash android-port/scripts/audit-original-skia-arm64.sh build/skia/out/Release-Android-arm64
+bash android-port/scripts/try-build-original-editor-arm64.sh
 ```
 
-Patch scripts are designed to fail when upstream anchors change, rather than
-silently substituting missing code. The integration test clones required files
-into a temporary directory and runs the complete overlay twice:
+El script aplica parches comprobados sobre las revisiones fijadas, construye
+el `gen` original como ejecutable Linux y después `laf-os`, `app-lib` y
+`aseprite` con el NDK. El resultado es:
+
+```text
+build/aseprite-gui-android-arm64/lib/libaseprite.so
+```
+
+Se usa `c++_static`, PIC y `--no-undefined`. El enlace debe resolver los
+símbolos del motor. La comprobación posterior lee ELF64/ET_DYN/AArch64,
+las siete exportaciones JNI **definidas** y las dependencias dinámicas.
+No acepta que un nombre JNI aparezca solamente como una cadena de texto.
+
+Los archivos GN estáticos principales ya incorporan sus dependencias.
+El ABI de `sk_sp` debe coincidir con el LAF original: GN m124 activa
+`trivial_abi` implícitamente en builds no oficiales. Desactivarlo
+explícitamente evita corrupción de punteros observada al cargar la paleta.
+El auditor rechaza tanto `true` como la ausencia de esa opción.
+No añadas indiscriminadamente todas las bibliotecas `.a`: la configuración
+de Aseprite recibe las rutas Android reales de JPEG, FreeType, HarfBuzz y
+WebP. Nunca uses los binarios precompilados Linux x86-64 para Android.
+
+## Empaquetado local del proyecto existente
+
+Solo después del enlace auténtico:
 
 ```sh
+python3 android-port/scripts/stage-authentic-android-assets.py --engine build/aseprite-gui-android-arm64/lib/libaseprite.so
+gradle -p android-port --no-daemon --max-workers 2 clean assembleDebug
+python3 android-port/scripts/verify-original-android-apk.py android-port/app/build/outputs/apk/debug/app-debug.apk
+"$ANDROID_HOME/build-tools/35.0.0/apksigner" verify android-port/app/build/outputs/apk/debug/app-debug.apk
+```
+
+La biblioteca y `data/` se copian a los directorios del módulo existente.
+Los recursos generados y los binarios están excluidos de Git. Gradle falla
+si falta el motor o `data/gui.xml`. La Activity carga directamente esa
+biblioteca y llama al `app_main()` original.
+
+## Pruebas y límites de esta compilación
+
+```sh
+bash android-port/scripts/test-host.sh
 python3 android-port/tests/patch_laf_integration_test.py
+python3 android-port/tests/verify_android_bootstrap_contract.py
+python3 android-port/tests/native_cmake_topology_smoke.py
+python3 android-port/tests/test_asset_stage.py
+bash android-port/tests/test-skia-archive-arm64.sh
 ```
 
-GitHub Actions includes a preflight job for this test; a passing result has
-not yet been confirmed. Do not mistake successful patching for a GUI build.
+Los tests ELF requieren Clang, lld y herramientas ELF; los tests de archivos
+estáticos también necesitan `llvm-ar`. Sus bibliotecas sintéticas son
+fixtures temporales, nunca el motor ni una APK.
 
-## Build requirements
+Esta configuración de primer arranque desactiva scripting, websocket,
+noticias, actualizador e idiomas adicionales. El port todavía requiere
+pruebas de interfaz, herramientas y formatos originales; integración SAF;
+composición/selección IME completas; portapapeles Android; controles externos;
+pausa y restauración; y medidas de rendimiento. No equivale al port completo.
+La ventana actual es una sola SurfaceView; Skia raster trabaja en CPU.
 
-- CMake >= 3.20, Ninja, Clang and Android NDK 27.2.12479018.
-- Original Aseprite submodules, including `laf`.
-- Original Aseprite's `gen` generator first built on Ubuntu x86_64.
-- An **Android ARM64 build of Skia**, branch `aseprite-m124` (not the
-  precompiled Linux, Windows or macOS Skia libraries).
-- Original CMake dependencies such as zlib, libpng, freetype/harfbuzz.
+El workflow instala la imagen oficial `system-images;android-36;default;arm64-v8a`
+y ejecuta el motor con su cargador Bionic bajo QEMU user-mode. Se usa un
+lanzador de prueba que solo llama al `app_main()` de la biblioteca real.
+Las pruebas verifican guardar/reabrir `.ase` y `.aseprite`, capas/grupos,
+frames/cels/etiquetas, tilemaps indexados, spritesheets idénticas y los codecs
+PNG/GIF/JPEG/WebP. No inicia Android Framework, JNI ni una SurfaceView; no
+sustituye al emulador gráfico o a las pruebas del teléfono.
 
-## Skia m124 ARM64 experimental build
-
-The exact Skia branch required by Aseprite is `aseprite-m124`. This port uses
-its software raster backend first, not EGL/Vulkan acceleration. The experimental
-workflow [android-skia-arm64-experimental.yml](../../.github/workflows/android-skia-arm64-experimental.yml)
-now tries to build genuine `libskia.a`, `libskshaper.a`, and `libskunicode.a`
-for Android ARM64, with the installed NDK and GN. After those libraries,
-its experimental final step attempts to link the **original Aseprite** editor
-into `libaseprite.so` using `scripts/try-build-original-editor-arm64.sh`.
-No passing end-to-end run has been confirmed. The workflow does **not**
-upload or distribute an APK or library.
-
-Do not reuse precompiled Linux x86_64 Skia libraries for Android. The Android
-Skia build must produce compatible ARM64 libraries and headers before GUI
-linking can be tested.
-
-Native engine configuration **when Skia Android and all dependencies exist**:
+Para repetirlas en Linux con `qemu-user`, `e2fsprogs`, el NDK y esa imagen:
 
 ```sh
-cmake -S . -B build/android-gui -G Ninja \
-  -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
-  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 \
-  -DENABLE_ASEPRITE_EXE=OFF -DASEPRITE_ANDROID_GUI=ON \
-  -DLAF_BACKEND=skia -DSKIA_DIR=/path/to/android-skia \
-  -DSKIA_LIBRARY_DIR=/path/to/android-skia/out/Release-Android-arm64 \
-  -DGEN_EXE=/path/to/ubuntu-host/bin/gen \
-  -DENABLE_NEWS=OFF -DENABLE_UPDATER=OFF \
-  -DLAF_WITH_EXAMPLES=OFF -DLAF_WITH_TESTS=OFF
-cmake --build build/android-gui --target aseprite
+python3 android-port/scripts/test-original-editor-android-batch.py --engine build/aseprite-gui-android-arm64/lib/libaseprite.so --system-image "$ANDROID_HOME/system-images/android-36/default/arm64-v8a/system.img"
 ```
 
-The expected real engine output is a shared `libaseprite.so`, not a
-replacement rendering shell. Configuration/compilation success is not
-yet verified. The original engine may require more Android portability fixes.
-
-## Android packaging gate
-
-Only after the real engine is linked, stage:
-
-- Real `libaseprite.so` in `android-port/app/src/main/jniLibs/arm64-v8a/`.
-- Genuine Aseprite original `data/` contents (theme, GUI XML, fonts, icons)
-  as `android-port/app/src/main/assets/data/`.
-
-Gradle deliberately FAILS if either the engine or `data/gui.xml` is missing.
-This prevents a blank APK from being presented as a successful port.
-
-Keep all binaries and build artifacts private. Do not publish APKs in this
-public fork. The code has **not** been tested on Galaxy A15 yet.
-
-## Platform fixes (October 2026)
-
-- The original Skia CMake dispatch selects `skia_window_android.cpp` under
-  `ANDROID`, instead of incorrectly adding the Linux/X11 window implementation.
-- Repeated LAF overlay application recognizes later, more complete patches.
-- The JNI-created window reference is released before the original
-  `SkiaSystem` tears down the application event queue.
-- Aseprite's `System::mousePosition()` now receives Android touch coordinates.
-- Original `SkiaSystem::setTextInput()` can call an Android-window method,
-  though a complete soft-keyboard/IME adapter is still missing.
-- The original JNI shared target links the raster code once, not twice.
-
-## Attempt the original JNI editor library in one GitHub job
-
-Run `Build Skia and attempt original Aseprite Android ARM64 (experimental)`
-under GitHub Actions on the `android-native-port-wip` branch. The job:
-
-1. Builds Skia m124 as Android ARM64 software raster, and validates GN target OS/CPU.
-2. Applies the original-source Android LAF overlays, checking idempotence.
-3. Compiles the original `gen` utility for the Ubuntu host.
-4. Cross-configures and links the original Aseprite `app_main()`, `app-lib`,
-   `laf-os`, `doc-lib`, `render-lib`, and format modules into `libaseprite.so`.
-5. Refuses to report success without a real nonempty shared library.
-
-**This is a compilation attempt**, not a demonstrated working port. The CMake
-configuration or build may expose additional portability errors. No APK is
-created. Keep Aseprite binaries private for personal use under the EULA.
-
-
-## Verified ELF staging gate (experimental)
-
-The staging script only operates after the ORIGINAL Aseprite NDK linker
-successfully produces a complete libaseprite.so. It verifies ELF64/LE,
-AArch64, ET_DYN, all seven exported Java/JNI symbols in the actual
-dynamic symbol table (not merely embedded text), and rejects unexpected
-desktop or unpackaged libc++ dependencies.
-
-Run privately from the original recursive checkout:
-
-```sh
-python3 android-port/scripts/stage-authentic-android-assets.py \
-  --root . --engine build/aseprite-gui-android-arm64/lib/libaseprite.so
-```
-
-The files are staged into Gradle's conventional jniLibs and assets paths,
-using temporary copies before installation. This does not compile the editor,
-does not sign or upload an APK, and does not authorize publishing binaries.
-The test suite compiles synthetic AArch64 and x86_64 ELF fixtures; these
-fixtures are never used as editor output. The real Skia/engine Android link
-remains a separate, as-yet-unverified milestone.
+Para el primer ensayo real, instala solamente la APK privada y captura
+`adb logcat -s AsepriteAndroid AndroidRuntime libc DEBUG`, verificando carga,
+recursos, primera ventana y primer repintado antes de probar edición.
+Las comprobaciones físicas del Galaxy A15 permanecen pendientes.

@@ -1,16 +1,17 @@
 # Aseprite — experimental native Android port
 
 This directory contains Android platform code for the **original C++ Aseprite**.
-It is NOT a replacement editor, a WebView, or a runnable APK. The original
-editor Java/JNI host and Aseprite app_main() linker target are now present,
-but they are **not validated as a working Android application**.
+The genuine Aseprite app_main(), app-lib, LAF and Skia now link into an
+Android ARM64 libaseprite.so. The existing Gradle project has produced a
+signed development APK locally with original resources. **Startup and editing
+on Android remain unverified.** The public repository publishes no binaries.
 
 ## Verified locally
 
 - C++17 gesture router: brush start/move/end, pressure, pen/eraser,
   two-finger pan/zoom, cancel handling and ghost-stroke suppression.
 - Blocking FIFO native event queue kernel with timeout/shutdown handling.
-- Linux host test suite: **2/2 passed** in the implementation environment.
+- Linux host test suite: **3/3 passed** in the implementation environment.
 
 ## Run tests
 
@@ -38,8 +39,10 @@ The fail-closed source patch is in `scripts/patch-laf-headless-android.py`.
 It adds a headless Android event queue to a checkout of the original LAF
 submodule. Additional guarded patch scripts add experimental native Android
 `WindowAndroid`, `SystemAndroid`, Skia raster presenter, Java Activity,
-and original `app_main()` JNI entry. **These sources have not yet passed a
-complete Skia+app-lib Android build.** See `docs/BUILD_ANDROID.md`.
+and original `app_main()` JNI entry. These sources passed a complete local
+Skia+app-lib Android link. See [build instructions](docs/BUILD_ANDROID.md)
+and [current results](docs/BUILD_RESULTS_2026-10-19.md) for private Actions
+packaging and remaining runtime limitations.
 
 ## License and repository visibility
 

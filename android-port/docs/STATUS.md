@@ -1,326 +1,66 @@
-# Android native port status — experimental (not yet an APK)
+# Estado del port nativo Android — 19 de octubre de 2026
 
-Original Aseprite source: `YlPorts/aseprite`, branch `android-native-port-wip`.
+Repositorio original conservado, rama `android-native-port-wip`.
+Referencia inicial inspeccionada: `f3c8f1ed646059a15235018be0668fd686742119`.
+`main` permanece intacta.
 
-## Implemented in this branch
+| Componente | Estado real |
+| --- | --- |
+| Skia original m124: skia, skshaper, skunicode | **COMPILADO** Android ARM64 localmente y en Actions |
+| Generador original gen | **COMPILADO** para el runner Linux |
+| laf-os, bibliotecas originales y app-lib | **COMPILADO** Android ARM64 localmente |
+| libaseprite.so original, --no-undefined | **COMPILADO**, ELF AArch64 y siete exportaciones JNI **PROBADAS** |
+| Proyecto Gradle existente y recursos originales | **COMPILADO** como APK privada local, firma y contenido **PROBADOS** |
+| Motor Android en modo batch: archivos/capas/frames y spritesheets | **PROBADO** bajo QEMU con Bionic Android 16; sin interfaz |
+| Interfaz original en Android, dibujo y guardado desde la GUI | **PENDIENTE** de ejecución real |
+| Galaxy A15, Android 16, táctil/IME/ciclo de vida/rendimiento | **PENDIENTE** de pruebas físicas |
 
-- Touch arbitration: single-finger paint, pressure, pen, eraser, dual-finger pan and pinch.
-- Conversion to genuine `laf/os::Event` input types.
-- Native NDK input decoder for `AInputEvent` (Activity hookup still missing).
-- Thread-safe Android queue for the original LAF `EventQueue` API.
-- **Raster Skia output**: 32-bit RGBA/BGRA pixels, neighbor-nearest integer scaling,
-  row stride, clipped updates and native `ANativeWindow` lock/unlock/post.
-- An experimental `ScreenAndroid`, `SystemAndroid`, `WindowAndroid` and
-  `SkiaWindowAndroid` adapter as an overlay on the original LAF sources,
-  without redrawing/reimplementing Aseprite's UI.
-- Guarded overlay patch script `patch-laf-android-raster.py` to apply
-  after `patch-laf-headless-android.py`.
-- Ubuntu CTest and NDK `arm64-v8a` module checks, plus experimental CI
-  for `doc-lib`, `render-lib`, and `dio-lib`.
+La APK es de desarrollo, **sin arranque verificado**. No hay una release
+funcional ni binarios publicados. Compilar y validar el paquete no demuestra
+que las herramientas o la interfaz funcionen en Android.
 
-## Actually verified
+## Implementación conservada
 
-- In local Linux host build: **3/3 CTest** (touch, event queue, raster presentation).
-- The raster backend, original LAF overlay, NDK ABI, and full editor remain
-  **UNVERIFIED at runtime**. CI has been committed but no passing run has been
-  confirmed through the available connector.
-- No APK was compiled. No original Aseprite GUI function is claimed operational.
+La Activity y el JNI existentes invocan el app_main() original con
+app-lib, LAF y Skia. Se mantienen menús, widgets, herramientas, formatos,
+capas y animación del código C++; no hay un editor alternativo.
 
-## New original-editor bootstrapping (source integrated, not verified)
+Hay adaptadores experimentales para SurfaceView/ANativeWindow, raster
+RGBA/BGRA, escala entera y stride, cola LAF sincronizada, teclado, presión,
+lápiz, tacto/pan/pinch y puente IME solicitado por los campos originales.
+Las pruebas de módulos y compilación no certifican esos flujos completos.
 
-- Android Java SurfaceView host in `android-port/app/` receives the real surface,
-  pointer and keyboard events and extracts authentic `data/` resources.
-- JNI entry in `src/android/jni_editor_entry.cpp` launches Aseprite's existing
-  `app_main()` in its engine thread and delivers surface/resize/input events.
-- An owning, synchronized original LAF window registry and Android keyboard
-  state provide JNI-to-LAF reference and modifier handling.
-- `android-port/native-app/CMakeLists.txt` defines a real shared `libaseprite.so`
-  from the upstream `src/main/main.cpp` and `app-lib`.
-- `patch-aseprite-android-engine.py` and `patch-laf-android-runtime.py` connect
-  source overlays without modifying `main`.
-- Gradle fails deliberately when `libaseprite.so` or original GUI assets
-  are missing; this is not a runnable APK without the original engine.
-- GitHub integration-preflight workflow checks patch compatibility only;
-  not a completed original GUI build.
+## Correcciones de esta fase
 
-## Corrections and checks — current continuation
+- Error C++ real en liberación de tacto; herramientas ELF ausentes en CI.
+- GN original de Skia sin el bootstrap roto de depot_tools.
+- ABI de Skia alineado con LAF: `is_trivial_abi=false`, tras reproducir
+  y depurar corrupción de `sk_sp` al cargar la paleta original.
+- posix_memalign compatible con API 26 en el LAF fijado.
+- Exclusión de diálogos X11 y selección del backend original de
+  portapapeles en memoria; el portapapeles compartido Android falta.
+- User agent Android sin campos exclusivos de distribuciones Linux.
+- Rutas exactas de JPEG/FreeType/HarfBuzz/WebP de Skia ARM64.
+- Hilos Bionic sin intentar enlazar una biblioteca Linux libpthread.
+- Recursión en tamaño de ventana corregida; gestor Skia de fuentes Android.
+- Conversión de coordenadas táctiles en el hilo del editor para evitar
+  competir con la recreación de la superficie.
+- Directorio de trabajo privado para el selector original de archivos.
+- Validador ELF sin falsos fallos SIGPIPE y empaquetado privado opcional
+  dentro del workflow existente, con prohibición de artefactos públicos.
 
-- Fix CMake dispatch selecting `skia_window_android.cpp` rather than X11 for Android.
-- Make the headless/raster/runtime overlays re-applicable and add an
-  isolated regression test against real source/submodule files:
-  `tests/patch_laf_integration_test.py`.
-- Release Android JNI window registry before `SkiaSystem` event teardown;
-  do not advertise unsupported multiple native windows.
-- Correct missing native `setTextInput()` interface and update the original
-  `System::mousePosition()` pointer coordinate support.
-- Avoid linking two copies of the standalone raster presenter.
-- Add an experimental GitHub Actions job to build authentic Aseprite
-  `aseprite-m124` Skia with Android NDK 27, ARM64 and CPU raster enabled.
-- **Locally verified in this session:** the original stage-1 touch CTest
-  passed (1/1) and the GitHub-sourced C++ raster test passed with
-  AddressSanitizer + UndefinedBehaviorSanitizer.
-- Checked 15 expected integration anchors in current official Aseprite/LAF
-  sources via repository content inspection (not a compiled Android port).
-- New GitHub Actions workflows and real editor JNI integration have no
-  confirmed passing end-to-end run; do not claim an APK works.
+## Próxima prioridad
 
-## Correcciones de integración verificadas en esta sesión
+Obtener el **primer arranque gráfico real** y su logcat en un sistema
+Android ARM64. El emulador oficial disponible rechaza una AVD ARM64 sobre
+este host x86-64. QEMU user-mode permitió probar el motor Android en modo
+batch, pero no se ha mostrado ni probado la primera pantalla.
 
-- **Parche raster**: `replace_once()` acepta ahora `accepted_later`, usado
-  por la integración tras aplicar el backend de ventanas.
-- **Parche `SkiaSystem`**: corregidas secuencias de salto de línea doblemente
-  escapadas que producirían texto C++ inválido.
-- **Skia GN**: establecido `target_os="android"` además de `target_cpu="arm64"`,
-  y la CI comprueba explícitamente ambos valores antes de compilar.
-- **Renderización ultrawide**: el reescalado entero usa márgenes negros
-  cuando los tamaños físicos no coinciden, sin repetir píxeles de borde;
-  pruebas nuevas para RGBA/BGRA y stride.
-- **Teclado original**: añadido `android_key_state_test.cpp` y ejecución
-  en el preflight de GitHub contra los tipos reales de `laf`.
+Después: crear/dibujar/guardar/reabrir .aseprite con capas y frames;
+SAF, IME completo, ratón/teclado externos, pausa/restauración y mediciones
+en el Galaxy A15. Scripting y otras opciones de escritorio desactivadas
+para esta fase también requieren una revisión posterior.
 
-**Comprobación ejecutada localmente:** compilación CMake de módulos aislados,
-`ctest` 3/3 y prueba raster con AddressSanitizer/UBSan sin fallos detectados.
-El editor original y el backend Android completo NO se han compilado ni
-probado en el dispositivo. La CI no tiene resultados concluyentes confirmados.
-
-## Nueva compilación integral (experimental)
-
-El script `android-port/scripts/try-build-original-editor-arm64.sh`
-intenta, tras compilar Skia m124 Android ARM64 en GitHub Actions:
-
-- Ejecutar los cuatro parches sobre los fuentes originales.
-- Construir `gen` en el host Linux (no en Android).
-- Configurar CMake con NDK ARM64, Skia raster y PIC.
-- Enlazar el `app_main()` auténtico, `app-lib` y `laf-os` para generar
-  una biblioteca JNI genuina `libaseprite.so`.
-
-Esto es un **intento reproducible**, NO un binario conseguido. La compilación
-puede fallar mientras se corrigen dependencias/portabilidad y no tiene
-resultados confirmados aquí. El workflow no crea/publica una APK.
-
-## Known blockers
-
-1. **Validate and fix** the new Activity/JNI `app_main()` integration in real NDK builds.
-2. Compile the original `laf` Skia backend with Android-built Skia m124,
-   including adjustment of renderer's native format/canvas sizing.
-3. Validate event propagation; complete IME, mouse/stylus edge cases, dialogs and clipboard.
-4. Compile/link original `app-lib`, generate resource headers with host `gen`.
-5. Package authentic `data/` themes/fonts/icons/strings in APK assets.
-6. SAF open/save, URI permission persistence, safe autosave/recovery.
-7. Performance, window resizing/rotation, multiple panels, external inputs.
-8. Verify with an ARM64 Android device and functionality checklist.
-
-**Important limitations:** current window adapter supports the primary native
-surface only. `invalidateRegion()` is deferred to the authentic
-`ui::Display::flip()` → `swapBuffers()` path; finer dirty-region
-scheduling, native dialogs, external windows, and EGL acceleration remain.
-Android raster is CPU-based, not GPU-accelerated yet.
-
-## License
-
-Aseprite EULA restricts modifying and building source to personal use or
-contributions, and prohibits distributing binaries. This fork is PUBLIC.
-No compiled Aseprite binary should be published here. For private CI
-artifacts, use a separate private repository (not a public GitHub fork).
-
-## October 18 — original engine integration hardening
-
-- Corrected Skia Android renderer: `SkiaSurface::bitmap()` is non-const in
-  the pinned LAF interface; the renderer now calls it on a mutable surface
-  and checks row-stride bounds.
-- Converted physical Android motion positions to original **LAF logical
-  coordinates** using `Window::scale()`, matching X11/Windows event behavior
-  for non-1x editor UI scale.
-- GitHub CI now attempts NDK ARM64 syntax compilation of JNI and **nine**
-  Android/LAF adapter translation units before the full Skia linkage.
-- Original-editor ARM64 build script builds host `gen` with clipboard optional
-  and validates output ELF machine `AArch64` before claiming native success.
-- Added `stage-authentic-android-assets.py` to prepare original `data/`
-  assets only alongside a real AArch64 ELF library exposing the expected JNI
-  boot entrypoint. It does **not** package or publish an APK.
-- Added regression checks for malformed ELF / wrong CPU / absent JNI,
-  wired into integration-preflight Actions. **New CI results not confirmed.**
-- Existing standalone host unit suite still passes **3/3** locally.
-
-This is real source work, not a fully linked or device-tested original
-Aseprite editor. Full Skia ARM64/linker errors remain to resolve once a
-CI run completes and its logs are inspected.
-
-
-## Continuación: fallos concretos de compilación corregidos
-
-- Se reemplazó el workflow Skia malformado (líneas duplicadas, `grep` roto)
-  por una secuencia única con checkout recursivo del Aseprite original.
-- La generación GN ahora utiliza el ejecutable `gn` de `depot_tools`.
-- El software raster original `laf/os/skia/skia_surface.cpp` ya no intenta
-  utilizar clases internas de GPU cuando `SK_SUPPORT_GPU=0`; la prueba de
-  parches valida la condición sobre el código real del submódulo.
-- Se excluyó la comprobación libc++ específica de Linux para el NDK Android.
-- `laf/base/platform_unix.cpp` se protege con `LAF_LINUX` para no
-  compilar utilidades exclusivas de distribuciones Linux en Android.
-- Se eliminó una comprobación que exigía un inexistente
-  `laf/clip/CMakeLists.txt` incluso con portapapeles deshabilitado.
-- Se cancelan trazos y gestos cuando desaparece la superficie nativa,
-  aunque no se haya recibido `onPause` de Android.
-- Pruebas locales: **3/3** módulos C++ aislados pasaron nuevamente.
-- **Importante:** no hay compilación completa `libaseprite.so` verificada
-  ni APK jugable. No confundir fuente corregida con ejecución exitosa.
-
-
-## Puerta de salida: primera APK real — criterios pendientes
-
-El proyecto **no está próximo a una versión instalable verificada** sólo por
-haber agregado código de plataforma. La prioridad sigue siendo lograr esta
-secuencia con evidencia de ejecución:
-
-1. **Skia Android AArch64**: compilación correcta de `skia`, `skshaper`
-   y `skunicode` desde la rama original `aseprite-m124`.
-2. **LAF + motor original**: construcción y enlace auténticos de
-   `app-lib`, `laf-os` y `src/main/main.cpp` en `libaseprite.so`.
-3. **Arranque real**: SurfaceView carga los recursos y aparece la interfaz
-   original, no una pantalla vacía ni un editor alternativo.
-4. **Operaciones del editor**: abrir, crear, dibujar, capas, deshacer,
-   guardar y recuperar ficheros sin corrupción.
-5. **Integración del móvil**: entrada táctil, IME, ciclo de vida Android,
-   ultrawide sin distorsión y pruebas de estabilidad/rendimiento en
-   hardware ARM64.
-
-**Esta continuación:** se corrigió una aserción del test de parches que
-interpretaba `\\n` como texto literal. Se introdujo una única referencia
-persistente `androidPrimaryScreen()` compartida por `SystemAndroid` y
-`WindowAndroid`, para respetar la identidad de pantalla esperada por LAF;
-`WindowAndroid::setMousePosition()` ahora actualiza el cursor interno en
-coordenadas físicas usando el escalado de la interfaz. Los nuevos cambios
-están subidos pero la compilación integral ARM64 y el arranque real no están
-verificados.
-
-
-## 18 Oct 2026 — synchronised ultrawide touch and original startup diagnostics
-
-- Added `rasterViewport()` as shared source-to-screen centering geometry:
-  the same helper is used for Skia RGBA/BGRA presentation and original
-  `laf` touch-position translation.
-- `laf_event_bridge.cpp` now reads the real `os::Surface` dimensions
-  during surface changes and subtracts the actual viewport offsets before
-  translating touchscreen coordinates to UI pixels. Coordinates outside
-  letterboxing remain outside the drawable surface.
-- Expanded `raster_presenter_test.cpp` for centered and tall destination
-  surfaces and invalid geometry.
-- Avoided an RTTI-dependent downcast for the window registered exclusively
-  as `WindowAndroid` in this Android build.
-- Added explicit `logcat` start, exit code and thread-teardown messages for
-  the authentic `app_main()` entrypoint under tag `AsepriteAndroid`.
-- Added source-level preflight checks for matching viewport usage in the
-  original-event bridge and renderer.
-
-**Current verification limit:** source commits are pushed, but the new CI
-runs and the full ARM64 `libaseprite.so` link have not been confirmed
-successful. This is still **not** a functional Android APK.
-
-
-## Current continuation — CMake integration and native safety
-
-- The original Aseprite Android JNI CMake target no longer recursively enters
-  `android-port/CMakeLists.txt` (a standalone tests project which called
-  `project()` again). Instead it links the genuine touch adapter sources
-  directly while the original LAF backend links the raster presenter once.
-- Added a configure-only CMake smoke test of the JNI target graph. The test
-  is run on a temporary mock CMake context, **does not compile or distribute
-  a substitute editor**, verifies that the original project name is unchanged,
-  and asserts failure if the genuine `laf-os` target is absent.
-- The smoke test was **executed locally** and passed for both the normal and
-  deliberately broken configuration. CI is configured to repeat it.
-- Tightened `ANativeWindow_Buffer` pixel stride validation to avoid integer
-  overflow and invalid buffer access before copying raster pixels.
-- The portable raster presenter and matching letterbox test were compiled
-  and run locally with Clang AddressSanitizer + UndefinedBehaviorSanitizer;
-  the test passed.
-- Android ARM64 Actions now writes the first CMake/Clang/link errors to the
-  GitHub step summary when the genuine Aseprite editor build fails. It does
-  not publish any APK or proprietary binary.
-
-**Still pending:** a verified successful Skia ARM64 and original `app-lib`
-link, real editor startup, editable layers, file operations, IME and Android
-device tests. No installable release is claimed.
-
-## October 18 — asset recovery, authentic keyboard and targeted Skia build
-
-- The native Android Activity now stages original Aseprite assets to
-  `.installing` temporary files, syncs them and atomically renames them.
-  An interrupted copy is retried instead of treating a partial file as ready.
-- Original LAF Android keyboard mapping now handles punctuation and
-  navigation scancodes used for shortcuts; the header-based key test was
-  expanded and remains part of GitHub preflight (new run not yet confirmed).
-- The source contract check now verifies the original asset staging gate.
-- The full ARM64 GitHub workflow watches native JNI/CMake/LAF code changes
-  and compiles **only** the genuine Skia, skshaper and skunicode targets
-  needed by the original LAF backend, rather than Skia's entire `modules`
-  group.
-- Two available local tests were executed: the CMake configure-only JNI
-  topology test and the raster unit test using Clang AddressSanitizer and
-  UndefinedBehaviorSanitizer. Both passed.
-- **Not yet verified:** a successfully completed Android Skia build,
-  a linked `libaseprite.so`, the original editor GUI on an Android device,
-  or an installable APK. Source-level/host checks are not substitutes.
-
-
-## 2026-10-18 — verified GitHub Actions evidence and first Android IME bridge
-
-**Verified historical result:** [Android original editor integration preflight
-#39153012716](https://github.com/YlPorts/aseprite/actions/runs/39153012716)
-completed **success**. It applied original pinned LAF patches twice, checked
-idempotence/dry-run, verified Android window selection, and compiled the
-original LAF keyboard adapter on the Linux runner. This does not prove an
-AArch64 Skia/editor link.
-
-**Verified failure:** [experimental original core run
-#39155210862](https://github.com/YlPorts/aseprite/actions/runs/39155210862)
-failed at `android-actions/setup-android@v3` because `sdkmanager` attempted
-to install the unavailable `tools` package; no editor compilation occurred
-in that job. All four experimental Android workflows now use the Ubuntu
-runner's already installed SDK tools directly to install NDK 27.2.12479018,
-instead of `setup-android@v3`. Those corrections are pending CI validation.
-
-**Action backlog:** Hundreds of historical push-triggered runs had been
-queued because the upstream desktop matrix started on every Android commit.
-Only on `android-native-port-wip`, desktop `build.yml` ignores pushes
-to the Android branch, and the Android workflows now use branch-scoped
-concurrency with `cancel-in-progress: false`; the original `main` branch
-and its desktop build behavior were not changed.
-
-**IME integration (experimental):** `WindowAndroid::setTextInput()` now
-calls a JNI bridge, which asks Java's `InputMethodManager` to display/hide
-the keyboard. A `SurfaceView` `InputConnection` commits Unicode code
-points as events on Aseprite's authentic `os::Event` queue. The bridge also
-handles backspace, keyboard events and Activity recreation. JNI signatures,
-Java-side names, and LAF bridge relationships have been inspected in the
-committed source, but **Java/NDK compilation and end-to-end IME behavior
-are not yet verified on Android**. In particular, full IME composition and
-all desktop text widgets remain pending testing.
-
-The original Aseprite source, project structure, layers, file formats,
-and desktop implementation are preserved. No successful full AArch64
-`libaseprite.so`, editor startup, or installable APK can yet be claimed.
-
-## 2026-10-18 — Original LAF repaint and guarded soft keyboard
-
-The Android LAF backend no longer discards calls to
-`WindowAndroid::invalidateRegion()`. Requests now queue **coalesced**
-`os::Event::Callback` events, retaining the original window until Aseprite's
-own UI loop calls `onPaint()`. Reattaching/resizing Android's SurfaceView
-also schedules a redraw so the editor image is restored even if no pixels
-change after foregrounding.
-
-The native Android soft keyboard bridge is now **opt-in**: the underlying
-`EditorSurfaceView` reports itself as a text editor only after the original
-`SkiaSystem::setTextInput(true)` request. The state is reset on the Java UI
-thread and `InputMethodManager.restartInput()` is called before show/hide.
-This prevents ordinary finger/stylus painting from activating a keyboard.
-
-Source checks for the real original LAF callback and conditional IME pipeline
-are included in `verify_android_bootstrap_contract.py`, consumed by
-GitHub Actions.
-
-**Verification:** code committed and re-fetched. No successful new Android
-ARM64 CI run or working original Aseprite GUI is confirmed. The latest Actions
-preflight and native-check jobs remain pending, and no APK is published.
+El [informe de compilación](BUILD_RESULTS_2026-10-19.md) contiene commits,
+registros y límites; [BUILD_ANDROID.md](BUILD_ANDROID.md) explica cómo
+obtener una APK personal desde Actions en un repositorio privado.
