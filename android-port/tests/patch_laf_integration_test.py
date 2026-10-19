@@ -6,7 +6,6 @@ This catches changed upstream anchors, non-idempotent overlays, and an
 accidental Android fallback to SkiaWindowX11.
 """
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -45,11 +44,28 @@ def original_files_are_present():
         raise RuntimeError("Original Aseprite submodule missing: " + ", ".join(absent))
 
 def clone_required_sources(destination):
+    # Build scripts also run this test after overlays have been applied.
+    # Copying that dirty worktree would skip every first-application anchor
+    # and could conceal a patch incompatible with the pinned submodules.
+    for parent, name in ((REPO, "laf"), (REPO / "laf", "clip")):
+        pinned = subprocess.check_output(
+            ["git", "rev-parse", f"HEAD:{name}"], cwd=parent, text=True).strip()
+        checked_out = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=parent / name, text=True).strip()
+        if pinned != checked_out:
+            raise RuntimeError(f"{parent / name}: checkout differs from pinned {pinned}")
     for relative in ORIGINAL_FILES:
-        source = REPO / relative
+        if relative.startswith("laf/clip/"):
+            repository, path = REPO / "laf/clip", relative[len("laf/clip/"):]
+        elif relative.startswith("laf/"):
+            repository, path = REPO / "laf", relative[len("laf/"):]
+        else:
+            repository, path = REPO, relative
+        original = subprocess.check_output(
+            ["git", "show", f"HEAD:{path}"], cwd=repository)
         output = destination / relative
         output.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, output)
+        output.write_bytes(original)
     (destination / "android-port").symlink_to(PORT, target_is_directory=True)
 
 def run_overlays(destination, dry_run=False):
