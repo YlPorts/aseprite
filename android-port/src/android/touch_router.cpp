@@ -52,8 +52,8 @@ std::vector<Gesture> TouchRouter::process(const Frame& frame) {
       return output;
     }
     else {
-      const Contact* c = find(frame.contacts, primaryId_);
-      output.push_back(point(GestureType::Up, c ? *c : last_));
+      const Contact* released = find(frame.contacts, primaryId_);
+      output.push_back(point(GestureType::Up, released ? *released : last_));
       reset();
       return output;
     }
