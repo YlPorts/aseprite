@@ -50,7 +50,7 @@ def main():
     # Bionic provides pthread in libc, not in a separate libpthread.
     replace_once(base,
         "  elseif(ANDROID)\n    target_compile_definitions(laf-base PUBLIC LAF_ANDROID)\n    target_link_libraries(laf-base pthread)\n",
-        "  elseif(ANDROID)\n    target_compile_definitions(laf-base PUBLIC LAF_ANDROID)\n    find_package(Threads REQUIRED)\n    target_link_libraries(laf-base Threads::Threads)\n",
+        "  elseif(ANDROID)\n    target_compile_definitions(laf-base PUBLIC LAF_ANDROID)\n    find_package(Threads REQUIRED)\n    target_link_libraries(laf-base ${CMAKE_THREAD_LIBS_INIT})\n",
         args.dry_run)
     p = laf / "base/platform.h"
     replace_once(p, "    Linux,\n", "    Linux,\n    Android,\n", args.dry_run)
