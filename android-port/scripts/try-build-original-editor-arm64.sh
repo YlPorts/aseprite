@@ -21,6 +21,12 @@ if [[ ! -s "$LIBS/libskia.a" || ! -s "$LIBS/libskshaper.a" || ! -s "$LIBS/libsku
   echo "ERROR: genuine Android-built Aseprite Skia m124 static libraries are missing" >&2
   exit 2
 fi
+for archive in libjpeg.a libfreetype2.a libharfbuzz.a libwebp.a; do
+  if [[ ! -s "$LIBS/$archive" ]]; then
+    echo "ERROR: Skia's original Android dependency is missing: $LIBS/$archive" >&2
+    exit 2
+  fi
+done
 if ! grep -Eq '^[[:space:]]*target_os[[:space:]]*=[[:space:]]*"android"([[:space:]]|$)' "$LIBS/args.gn"; then
   echo "ERROR: provided Skia build is not targeting Android" >&2
   exit 2
@@ -63,7 +69,11 @@ cmake -S . -B "$ANDROID_BUILD" -G Ninja \
   -DGEN_EXE="$GEN" -DSKIA_DIR="$SKIA" -DSKIA_LIBRARY_DIR="$LIBS" \
   -DSKIA_LIBRARY="$LIBS/libskia.a" \
   -DSKUNICODE_LIBRARY="$LIBS/libskunicode.a" \
-  -DSKSHAPER_LIBRARY="$LIBS/libskshaper.a"
+  -DSKSHAPER_LIBRARY="$LIBS/libskshaper.a" \
+  -DLIBJPEG_TURBO_LIBRARY="$LIBS/libjpeg.a" \
+  -DFREETYPE_LIBRARY="$LIBS/libfreetype2.a" \
+  -DHARFBUZZ_LIBRARY="$LIBS/libharfbuzz.a" \
+  -DWEBP_LIBRARIES="$LIBS/libwebp.a"
 echo "ASEPRITE_ANDROID_STAGE: Building original laf-os for ARM64"
 cmake --build "$ANDROID_BUILD" --target laf-os -j 2
 echo "ASEPRITE_ANDROID_STAGE: laf-os complete; building original app-lib"
