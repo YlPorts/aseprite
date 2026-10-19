@@ -45,26 +45,25 @@ jobs:
           sudo apt-get install -y ninja-build clang python3 git cmake pkg-config \
             libx11-dev libxcursor-dev libxi-dev libxrandr-dev libfontconfig1-dev \
             libfreetype-dev libharfbuzz-dev libpng-dev zlib1g-dev
-      - name: Clone Skia m124 and depot_tools
+      - name: Clone authentic Skia m124
         run: |
           mkdir -p build
           git clone --depth 1 -b aseprite-m124 https://github.com/aseprite/skia.git build/skia
-          git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git build/depot_tools
       - name: Sync original Skia dependencies
         working-directory: build/skia
         run: |
-          export PATH="$GITHUB_WORKSPACE/build/depot_tools:$PATH"
-          python3 tools/git-sync-deps
-          python3 bin/fetch-ninja
-          command -v gn
+          # This Skia revision fetches its pinned GN binary itself. Calling
+          # depot_tools/gn instead requires an unrelated Python bootstrap.
+          GIT_SYNC_DEPS_SKIP_EMSDK=1 python3 tools/git-sync-deps
+          test -x bin/gn
+          bin/gn --version
       - name: Configure genuine Android ARM64 Skia CPU raster
         working-directory: build/skia
         run: |
-          export PATH="$GITHUB_WORKSPACE/build/depot_tools:$PATH"
           NDK="$ANDROID_HOME/ndk/27.2.12479018"
           test -d "$NDK"
           ARGS="is_debug=false is_official_build=false target_os=\"android\" target_cpu=\"arm64\" ndk=\"$NDK\" ndk_api=26 skia_enable_gpu=false skia_enable_graphite=false skia_use_gl=false skia_use_system_expat=false skia_use_system_icu=false skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_libwebp=false skia_use_system_zlib=false skia_use_freetype=true skia_use_harfbuzz=true skia_use_system_freetype2=false skia_use_system_harfbuzz=false"
-          gn gen out/Release-Android-arm64 --args="$ARGS"
+          bin/gn gen out/Release-Android-arm64 --args="$ARGS"
           grep -Eq 'target_os[[:space:]]*=[[:space:]]*"android"' out/Release-Android-arm64/args.gn
           grep -Eq 'target_cpu[[:space:]]*=[[:space:]]*"arm64"' out/Release-Android-arm64/args.gn
       - name: Compile only original ARM64 Skia, Shaper and Unicode
