@@ -22,6 +22,7 @@ SCRIPTS = [
 ORIGINAL_FILES = [
     "CMakeLists.txt",
     "src/app/resource_finder.cpp",
+    "src/updater/user_agent.cpp",
     "laf/base/CMakeLists.txt",
     "laf/base/platform.h",
     "laf/base/platform_unix.cpp",

@@ -30,6 +30,11 @@ def main():
         '  if (const char* assets=std::getenv("ASEPRITE_ANDROID_DATA_DIR"))\n'
         '    addPath(base::join_path(assets,filename));\n'
         '#endif\n  char buf[4096];',opts.dry_run)
+    replace_once(root/'src/updater/user_agent.cpp',
+        '#else\n\n  // ----------------------------------------------------------------------\n  // Unix like',
+        '#elif LAF_ANDROID\n\n  os << "Android";\n\n'
+        '#else\n\n  // ----------------------------------------------------------------------\n  // Unix like',
+        opts.dry_run)
     print('Original Aseprite Android entry target prepared; no APK generated')
 if __name__=='__main__':
     main()
