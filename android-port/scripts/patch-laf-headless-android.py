@@ -75,6 +75,20 @@ def main():
         '    return nullptr;\n'
         '  return mem;\n#else',
         args.dry_run)
+    # Aseprite already falls back to its original file selector when the
+    # native dialog factory returns nullptr. Do not compile X11/zenity on
+    # Android while the platform document-provider integration is pending.
+    replace_once(laf / "dlgs/CMakeLists.txt",
+        'else()\n  target_sources(laf-dlgs PRIVATE file_dialog_x11.cpp)',
+        'elseif(NOT ANDROID)\n  target_sources(laf-dlgs PRIVATE file_dialog_x11.cpp)',
+        args.dry_run)
+    # Keep the original clip API/image types for Aseprite's GUI. Its
+    # upstream in-process backend is usable without XCB; Android's shared
+    # system clipboard still needs its own platform implementation.
+    replace_once(laf / "clip/CMakeLists.txt",
+        'elseif(UNIX AND NOT EMSCRIPTEN)',
+        'elseif(UNIX AND NOT EMSCRIPTEN AND NOT ANDROID)',
+        args.dry_run)
     p = laf / "os/common/event_queue.cpp"
     replace_once(p,
         '#if LAF_WINDOWS\n  #include "os/win/event_queue.h"',
